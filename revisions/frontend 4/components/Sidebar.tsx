@@ -43,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('Briefcase');
 
   const handleDashboardClick = () => {
@@ -64,6 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!user.permissions.canCreateProject) return;
     setEditingProject(null);
     setNewName('');
+    setNewDesc('');
     setSelectedIcon('Briefcase');
     setShowForm(true);
   };
@@ -73,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!user.permissions.canEditProject) return;
     setEditingProject(p);
     setNewName(p.name);
+    setNewDesc(p.description);
     setSelectedIcon(p.icon || 'Briefcase');
     setShowForm(true);
   };
@@ -81,9 +84,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.preventDefault();
     if (newName.trim()) {
       if (editingProject) {
-        onUpdateProject(editingProject.id, newName, '', selectedIcon);
+        onUpdateProject(editingProject.id, newName, newDesc, selectedIcon);
       } else {
-        onAddProject(newName, '', selectedIcon);
+        onAddProject(newName, newDesc, selectedIcon);
       }
       setShowForm(false);
     }

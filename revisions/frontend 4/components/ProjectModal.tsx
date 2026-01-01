@@ -11,19 +11,22 @@ interface ProjectModalProps {
 
 const ProjectModal: React.FC<ProjectModalProps> = ({ editingProject, onClose, onSubmit }) => {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (editingProject) {
       setName(editingProject.name);
+      setDescription(editingProject.description);
     } else {
       setName('');
+      setDescription('');
     }
   }, [editingProject]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSubmit(name, '');
+      onSubmit(name, description);
     }
   };
 
@@ -53,6 +56,15 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ editingProject, onClose, on
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Marketing Q1"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Description (Optional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this project about?"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all h-24 resize-none"
             />
           </div>
           <button
