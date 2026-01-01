@@ -1,8 +1,31 @@
 
+export interface Permissions {
+  canViewDashboard: boolean;
+  canCreateProject: boolean;
+  canEditProject: boolean;
+  canDeleteProject: boolean;
+  canAddTransaction: boolean;
+  canEditTransaction: boolean;
+  canDeleteTransaction: boolean;
+  canViewReports: boolean;
+  canTakeBackup: boolean;
+}
+
+export type UserRole = 'admin' | 'user';
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  password?: string;
+  role: UserRole;
+  permissions: Permissions;
+  avatar?: string;
+  coverImage?: string;
+  bio?: string;
+  location?: string;
+  phoneNumber?: string;
+  website?: string;
 }
 
 export interface Project {
@@ -11,6 +34,7 @@ export interface Project {
   description: string;
   createdAt: number;
   color: string;
+  icon: string;
 }
 
 export type TransactionType = 'income' | 'expense';
@@ -18,15 +42,8 @@ export type TransactionType = 'income' | 'expense';
 export interface Transaction {
   id: string;
   projectId: string;
-  date: string; // ISO format
+  date: string;
   type: TransactionType;
   amount: number;
   note: string;
-}
-
-export interface DayStats {
-  income: number;
-  expense: number;
-  balance: number;
-  transactions: Transaction[];
 }

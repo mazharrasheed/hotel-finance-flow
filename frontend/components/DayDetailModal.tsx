@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Transaction } from '../types';
-import { X, Trash2, Check, DollarSign, Plus } from 'lucide-react';
+import { Transaction, User } from '../types';
+import { X, Trash2, Check, Banknote, Plus, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DayDetailModalProps {
@@ -11,6 +11,7 @@ interface DayDetailModalProps {
   onUpdate: (id: string, updates: Partial<Transaction>) => void;
   onDelete: (id: string) => void;
   onAdd: (type: 'income' | 'expense', date: string) => void;
+  user: User;
 }
 
 const DayDetailModal: React.FC<DayDetailModalProps> = ({ 
@@ -19,12 +20,14 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
   onClose, 
   onUpdate, 
   onDelete,
-  onAdd
+  onAdd,
+  user
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Transaction>>({});
 
   const startEditing = (t: Transaction) => {
+    if (!user.permissions.canEditTransaction) return;
     setEditingId(t.id);
     setEditValues({
       amount: t.amount,
@@ -42,37 +45,43 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100">
         <header className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">{format(new Date(date), 'MMMM do, yyyy')}</h2>
-            <div className="flex gap-4 mt-1">
-              <span className="text-sm font-semibold text-emerald-600">Total Income: ${income.reduce((s, t) => s + t.amount, 0)}</span>
-              <span className="text-sm font-semibold text-rose-600">Total Expense: ${expense.reduce((s, t) => s + t.amount, 0)}</span>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">{format(new Date(date), 'MMMM do, yyyy')}</h2>
+            <div className="flex gap-4 mt-2">
+              <span className="text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-md">Income: PKR {income.reduce((s, t) => s + t.amount, 0)}</span>
+              <span className="text-xs font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md">Expense: PKR {expense.reduce((s, t) => s + t.amount, 0)}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
             <X size={24} />
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 custom-scrollbar">
           {transactions.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400 italic">No transactions for this day</p>
-              <div className="mt-4 flex justify-center gap-3">
-                <button onClick={() => onAdd('income', date)} className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm">Add Income</button>
-                <button onClick={() => onAdd('expense', date)} className="px-4 py-2 bg-rose-50 text-rose-700 rounded-xl font-bold text-sm">Add Expense</button>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Banknote size={32} />
               </div>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No records for this date</p>
+              {user.permissions.canAddTransaction && (
+                <div className="mt-6 flex justify-center gap-3">
+                  <button onClick={() => onAdd('income', date)} className="px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all active:scale-95 shadow-sm">Add Income</button>
+                  <button onClick={() => onAdd('expense', date)} className="px-5 py-2.5 bg-rose-50 text-rose-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95 shadow-sm">Add Expense</button>
+                </div>
+              )}
             </div>
           ) : (
             <>
-              {/* Income List */}
               {income.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Incomes</h3>
-                    <button onClick={() => onAdd('income', date)} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Plus size={14} /></button>
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Inbound Revenue</h3>
+                    {user.permissions.canAddTransaction && (
+                      <button onClick={() => onAdd('income', date)} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all shadow-sm"><Plus size={14} /></button>
+                    )}
                   </div>
                   <div className="space-y-3">
                     {income.map(t => (
@@ -86,18 +95,20 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                         onUpdate={() => handleUpdate(t.id)}
                         onDelete={() => onDelete(t.id)}
                         onCancel={() => setEditingId(null)}
+                        user={user}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Expense List */}
               {expense.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Expenses</h3>
-                    <button onClick={() => onAdd('expense', date)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg"><Plus size={14} /></button>
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project Expenses</h3>
+                    {user.permissions.canAddTransaction && (
+                      <button onClick={() => onAdd('expense', date)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all shadow-sm"><Plus size={14} /></button>
+                    )}
                   </div>
                   <div className="space-y-3">
                     {expense.map(t => (
@@ -111,6 +122,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                         onUpdate={() => handleUpdate(t.id)}
                         onDelete={() => onDelete(t.id)}
                         onCancel={() => setEditingId(null)}
+                        user={user}
                       />
                     ))}
                   </div>
@@ -124,7 +136,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
   );
 };
 
-const TransactionRow = ({ t, isEditing, editValues, setEditValues, onStartEdit, onUpdate, onDelete, onCancel }: any) => {
+const TransactionRow = ({ t, isEditing, editValues, setEditValues, onStartEdit, onUpdate, onDelete, onCancel, user }: any) => {
   const isIncome = t.type === 'income';
 
   if (isEditing) {
@@ -132,12 +144,12 @@ const TransactionRow = ({ t, isEditing, editValues, setEditValues, onStartEdit, 
       <div className={`p-4 rounded-2xl border-2 ${isIncome ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'} animate-in fade-in slide-in-from-left-2 duration-150`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="relative">
-            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Banknote size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="number"
               value={editValues.amount}
               onChange={(e) => setEditValues({...editValues, amount: parseFloat(e.target.value)})}
-              className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-sm font-bold focus:ring-2 ring-indigo-500 outline-none"
+              className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm font-black focus:ring-2 ring-indigo-500 outline-none"
               placeholder="Amount"
             />
           </div>
@@ -145,14 +157,14 @@ const TransactionRow = ({ t, isEditing, editValues, setEditValues, onStartEdit, 
             type="text"
             value={editValues.note}
             onChange={(e) => setEditValues({...editValues, note: e.target.value})}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 ring-indigo-500 outline-none"
-            placeholder="Note"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 ring-indigo-500 outline-none"
+            placeholder="Reference Note"
           />
         </div>
         <div className="flex justify-end gap-2 mt-3">
-          <button onClick={onCancel} className="px-4 py-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
-          <button onClick={onUpdate} className={`px-4 py-1.5 rounded-xl text-white text-sm font-bold flex items-center gap-1 ${isIncome ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-            <Check size={16} /> Update
+          <button onClick={onCancel} className="px-4 py-1.5 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors">Discard</button>
+          <button onClick={onUpdate} className={`px-5 py-2 rounded-xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-1 shadow-md transition-all active:scale-95 ${isIncome ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}`}>
+            <Check size={14} /> Commit Changes
           </button>
         </div>
       </div>
@@ -160,30 +172,30 @@ const TransactionRow = ({ t, isEditing, editValues, setEditValues, onStartEdit, 
   }
 
   return (
-    <div className={`flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all bg-slate-50/30 group`}>
+    <div className={`flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-50 transition-all bg-slate-50/30 group`}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className={`w-2 h-8 rounded-full shrink-0 ${isIncome ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+        <div className={`w-1.5 h-10 rounded-full shrink-0 ${isIncome ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-rose-500 shadow-lg shadow-rose-100'}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-800">${t.amount}</span>
+            <span className="text-base font-black text-slate-800">PKR {t.amount.toLocaleString()}</span>
           </div>
-          <p className="text-xs text-slate-500 truncate mt-0.5">{t.note || 'No description'}</p>
+          <p className="text-xs font-bold text-slate-400 truncate mt-0.5 tracking-tight uppercase">{t.note || 'Internal Record'}</p>
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onStartEdit} className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-colors">
-          <Edit2 size={16} />
-        </button>
-        <button onClick={onDelete} className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-rose-600 transition-colors">
-          <Trash2 size={16} />
-        </button>
+        {user.permissions.canEditTransaction && (
+          <button onClick={onStartEdit} className="p-2.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm">
+            <Edit2 size={16} />
+          </button>
+        )}
+        {user.permissions.canDeleteTransaction && (
+          <button onClick={onDelete} className="p-2.5 hover:bg-white rounded-xl text-slate-400 hover:text-rose-600 transition-all shadow-sm">
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
     </div>
   );
 };
-
-const Edit2 = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-);
 
 export default DayDetailModal;

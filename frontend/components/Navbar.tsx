@@ -1,27 +1,27 @@
 
 import React from 'react';
-import { Project, User } from '../types';
-import { Menu, LogOut, LogIn, User as UserIcon } from 'lucide-react';
+import { User } from '../types';
+import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud } from 'lucide-react';
 
 interface NavbarProps {
-  projects: Project[];
-  activeProjectId: string | null;
-  onSelectProject: (id: string) => void;
   onToggleSidebar: () => void;
   user: User | null;
   onLogout: () => void;
-  onShowLogin?: () => void;
+  onExport: () => void;
+  globalBalance: number;
+  onSetView: (view: 'dashboard' | 'users' | 'profile') => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ 
-  projects, 
-  activeProjectId, 
-  onSelectProject, 
   onToggleSidebar,
   user,
   onLogout,
-  onShowLogin
+  onExport,
+  globalBalance,
+  onSetView
 }) => {
+  const canBackup = user?.role === 'admin' || user?.permissions.canTakeBackup;
+
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center px-4 md:px-8 shrink-0 overflow-hidden shadow-sm z-20">
       <button 
@@ -32,61 +32,63 @@ const Navbar: React.FC<NavbarProps> = ({
         <Menu size={24} />
       </button>
 
-      <div className="flex-1 flex h-full overflow-x-auto no-scrollbar scroll-smooth">
-        <div className="flex h-full">
-          {projects.length === 0 ? (
-            <span className="text-slate-400 text-sm flex items-center">
-              {user ? 'Add a project to begin' : 'Login to manage projects'}
-            </span>
-          ) : (
-            projects.map(project => (
-              <button
-                key={project.id}
-                onClick={() => onSelectProject(project.id)}
-                className={`px-4 md:px-6 h-full flex items-center border-b-2 transition-all whitespace-nowrap text-sm font-semibold tracking-tight ${
-                  activeProjectId === project.id
-                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/30'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div 
-                  className="w-2.5 h-2.5 rounded-full mr-2.5 shadow-sm" 
-                  style={{ backgroundColor: project.color }}
-                />
-                {project.name}
-              </button>
-            ))
-          )}
-        </div>
+      <div className="flex-1 flex items-center">
+        <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight">Overview</h2>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4 ml-4 pl-4 border-l border-slate-100">
-        {user ? (
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <p className="text-xs font-black text-slate-800 leading-tight">{user.name}</p>
-              <p className="text-[10px] font-bold text-slate-400 leading-tight">Pro Account</p>
+      <div className="flex items-center gap-2 md:gap-4 ml-4">
+        {user && canBackup && (
+          <button 
+            onClick={onExport}
+            className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 hover:bg-indigo-50 hover:border-indigo-100 hover:text-indigo-600 transition-all text-slate-500 group"
+            title="Backup all data to CSV"
+          >
+            <DownloadCloud size={16} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-tighter">Backup CSV</span>
+          </button>
+        )}
+
+        {user && (
+          <div className="flex items-center gap-2 bg-indigo-50/50 px-4 py-1.5 rounded-2xl border border-indigo-100">
+            <Globe size={16} className="text-indigo-500" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Net Worth</span>
+              <span className={`text-sm font-black leading-tight ${globalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                PKR {globalBalance.toLocaleString()}
+              </span>
             </div>
-            <div className="w-9 h-9 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center border border-indigo-200 shadow-sm overflow-hidden">
-               <UserIcon size={20} />
+          </div>
+        )}
+
+        {user && (
+          <div className="flex items-center gap-3 border-l border-slate-100 pl-4 md:pl-4">
+            <div 
+              className="hidden md:block text-right cursor-pointer group"
+              onClick={() => onSetView('profile')}
+            >
+              <p className="text-xs font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">{user.name}</p>
+              <p className="text-[10px] font-bold text-slate-400 leading-tight">View Profile</p>
             </div>
+            
+            <div 
+              onClick={() => onSetView('profile')}
+              className="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm overflow-hidden shrink-0 cursor-pointer hover:ring-2 ring-indigo-200 transition-all active:scale-95"
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon size={18} />
+              )}
+            </div>
+            
             <button 
               onClick={onLogout}
-              className="flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold text-sm"
-              title="Sign Out"
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+              title="Logout"
             >
-              <LogOut size={18} />
-              <span className="hidden md:inline">Log Out</span>
+              <LogOut size={20} />
             </button>
           </div>
-        ) : (
-          <button 
-            onClick={onShowLogin}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-all font-bold text-sm shadow-md shadow-indigo-100"
-          >
-            <LogIn size={18} />
-            <span>Login</span>
-          </button>
         )}
       </div>
     </header>

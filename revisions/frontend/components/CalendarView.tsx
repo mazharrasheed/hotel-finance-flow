@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, Project, User } from '../types';
+import { Transaction, Project } from '../types';
 import { 
   format, 
   endOfMonth, 
@@ -10,11 +10,16 @@ import {
   addMonths, 
   endOfWeek,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, BarChart4 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, BrainCircuit } from 'lucide-react';
 import { getFinancialInsights } from '../services/geminiService';
 
+// Fix: Local implementation for startOfMonth as it is reported missing from date-fns in this environment
 const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+
+// Fix: Local implementation for subMonths using addMonths which is successfully exported
 const subMonths = (date: Date, amount: number) => addMonths(date, -amount);
+
+// Fix: Local implementation for startOfWeek (Sunday start) as it is reported missing from date-fns
 const startOfWeek = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
@@ -31,7 +36,6 @@ interface CalendarViewProps {
   onOpenDayDetail: (date: string) => void;
   onDeleteTransaction: (id: string) => void;
   activeProject: Project;
-  user: User;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
@@ -40,8 +44,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onAddTransaction, 
   onOpenDayDetail,
   onDeleteTransaction,
-  activeProject,
-  user
+  activeProject
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [insight, setInsight] = useState<string | null>(null);
@@ -113,22 +116,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </button>
         </div>
 
-        {user.permissions.canViewReports && (
-          <button 
-            onClick={generateInsight}
-            disabled={isLoadingInsight || transactions.length === 0}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-semibold hover:bg-indigo-100 transition-all disabled:opacity-50 text-xs md:text-sm"
-          >
-            <BarChart4 size={16} className={isLoadingInsight ? 'animate-pulse' : ''} />
-            {isLoadingInsight ? 'Processing...' : 'Budget Analysis'}
-          </button>
-        )}
+        <button 
+          onClick={generateInsight}
+          disabled={isLoadingInsight || transactions.length === 0}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-semibold hover:bg-indigo-100 transition-all disabled:opacity-50 text-xs md:text-sm"
+        >
+          <BrainCircuit size={16} className={isLoadingInsight ? 'animate-pulse' : ''} />
+          {isLoadingInsight ? 'Analyzing...' : 'AI Insights'}
+        </button>
       </div>
 
       {insight && (
-        <div className="mx-4 md:mx-6 mt-4 p-4 bg-indigo-600 text-white rounded-2xl flex items-start gap-4 animate-in slide-in-from-top duration-300 shadow-xl shadow-indigo-200/50">
+        <div className="mx-4 md:mx-6 mt-4 p-4 bg-indigo-600 text-white rounded-2xl flex items-start gap-4 animate-in slide-in-from-top duration-300">
           <div className="p-2 bg-white/20 rounded-lg shrink-0">
-            <BarChart4 size={20} />
+            <BrainCircuit size={20} />
           </div>
           <div className="flex-1">
             <p className="text-xs md:text-sm font-medium leading-relaxed">{insight}</p>
@@ -165,29 +166,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 >
                   <div className="flex justify-between items-start mb-1 md:mb-2">
                     <span className={`flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full text-xs md:text-sm font-bold ${
-                      isDayToday ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700'
+                      isDayToday ? 'bg-indigo-600 text-white' : 'text-slate-700'
                     }`}>
                       {format(day, 'd')}
                     </span>
                     
-                    {user.permissions.canAddTransaction && (
-                      <div className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onAddTransaction('income', dateKey); }}
-                          className="p-1 md:p-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors"
-                          title="Add Income"
-                        >
-                          <Plus size={12} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onAddTransaction('expense', dateKey); }}
-                          className="p-1 md:p-1.5 bg-rose-100 text-rose-700 rounded-md hover:bg-rose-200 transition-colors"
-                          title="Add Expense"
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                    )}
+                    <div className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex gap-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onAddTransaction('income', dateKey); }}
+                        className="p-1 md:p-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200"
+                      >
+                        <Plus size={12} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onAddTransaction('expense', dateKey); }}
+                        className="p-1 md:p-1.5 bg-rose-100 text-rose-700 rounded-md hover:bg-rose-200"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-0.5">
@@ -198,15 +195,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           t.type === 'income' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
                         }`}
                       >
-                        <span className="truncate max-w-[40px] md:max-w-[50px] font-medium uppercase tracking-tighter">{t.type}</span>
+                        <span className="truncate max-w-[40px] md:max-w-[50px] font-medium">{t.type}</span>
                         <div className="flex items-center gap-1">
-                          <span className="font-bold">PKR {t.amount}</span>
+                          <span className="font-bold">${t.amount}</span>
                         </div>
                       </div>
                     ))}
                     {dayStats.transactions.length > 3 && (
-                      <div className="text-[8px] md:text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mt-1">
-                        +{dayStats.transactions.length - 3} more
+                      <div className="text-[8px] md:text-[10px] text-center text-slate-400 font-medium">
+                        +{dayStats.transactions.length - 3}
                       </div>
                     )}
                   </div>
@@ -214,13 +211,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <div className="mt-auto pt-1 md:pt-2 border-t border-slate-50 flex flex-col items-end">
                      <div className="flex gap-2 w-full justify-between items-center mb-0.5">
                         <div className="flex flex-col">
-                          {dayStats.income > 0 && <span className="text-[8px] md:text-[9px] font-bold text-emerald-500 leading-none">+PKR {dayStats.income}</span>}
-                          {dayStats.expense > 0 && <span className="text-[8px] md:text-[9px] font-bold text-rose-500 leading-none">-PKR {dayStats.expense}</span>}
+                          {dayStats.income > 0 && <span className="text-[8px] md:text-[9px] font-bold text-emerald-500 leading-none">+${dayStats.income}</span>}
+                          {dayStats.expense > 0 && <span className="text-[8px] md:text-[9px] font-bold text-rose-500 leading-none">-${dayStats.expense}</span>}
                         </div>
                         <span className={`text-[10px] md:text-xs font-black ${
                           balance > 0 ? 'text-emerald-600' : balance < 0 ? 'text-rose-600' : 'text-slate-300'
                         }`}>
-                          {balance === 0 ? 'PKR 0' : (balance > 0 ? `+PKR ${balance}` : `-PKR ${Math.abs(balance)}`)}
+                          {balance === 0 ? '$0' : (balance > 0 ? `+$${balance}` : `-$${Math.abs(balance)}`)}
                         </span>
                      </div>
                   </div>

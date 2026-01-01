@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { X, Banknote, FileText } from 'lucide-react';
+import { X, DollarSign, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TransactionModalProps {
@@ -43,19 +43,19 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative group">
-            <label className="block text-sm font-bold text-slate-700 mb-2">Amount (PKR)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Amount</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                <Banknote size={20} />
+                <DollarSign size={20} />
               </span>
               <input
                 autoFocus
                 type="number"
-                step="1"
+                step="0.01"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
+                placeholder="0.00"
                 className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none transition-all text-2xl font-bold text-slate-800"
               />
             </div>

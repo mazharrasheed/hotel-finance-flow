@@ -10,9 +10,6 @@ import ProjectHeader from './ProjectHeader';
 import EmptyState from './EmptyState';
 import { apiService } from '../services/apiService';
 import { Loader2 } from 'lucide-react';
-// Added imports for views used in Sidebar navigation to support full functionality within Dashboard
-import UserManagement from './UserManagement';
-import ProfileSettings from './ProfileSettings';
 
 interface DashboardProps {
   user: User;
@@ -25,8 +22,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  // Added activeView state to support Sidebar navigation between different application views
-  const [activeView, setActiveView] = useState<'dashboard' | 'users' | 'profile'>('dashboard');
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,35 +49,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     loadData();
   }, []);
 
-  // Fix: Calculate global balance for Navbar and EmptyState to resolve missing prop error
-  const globalBalance = useMemo(() => {
-    return transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
-  }, [transactions]);
-
   const activeProject = useMemo(() => 
     projects.find(p => p.id === activeProjectId) || null
   , [projects, activeProjectId]);
 
   // Project Handlers
-  // Fix: Added icon parameter to handleAddProject to match Sidebar requirements
-  const handleAddProject = async (name: string, description: string, icon: string) => {
+  const handleAddProject = async (name: string, description: string) => {
     try {
-      const newProject = await apiService.createProject(name, description, icon);
+      const newProject = await apiService.createProject(name, description);
       setProjects(prev => [...prev, newProject]);
       setActiveProjectId(newProject.id);
       setIsSidebarOpen(false);
-      // Automatically switch to dashboard view when a new project is created
-      setActiveView('dashboard');
     } catch (error) {
       console.error("Add Project Error:", error);
       alert("Failed to create project. Please check your connection.");
     }
   };
 
-  // Fix: Added icon parameter to handleUpdateProject to match Sidebar requirements
-  const handleUpdateProject = async (id: string, name: string, description: string, icon: string) => {
+  const handleUpdateProject = async (id: string, name: string, description: string) => {
     try {
-      const updated = await apiService.updateProject(id, name, description, icon);
+      const updated = await apiService.updateProject(id, name, description);
       setProjects(prev => prev.map(p => p.id === id ? updated : p));
     } catch (error) {
       console.error("Update Project Error:", error);
@@ -99,44 +85,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     } catch (error) {
       console.error("Delete Project Error:", error);
     }
-  };
-
-  // Fix: Added CSV Export Handler to match Navbar expectations
-  const handleExportCSV = () => {
-    if (transactions.length === 0) {
-      alert("No transaction data to export yet.");
-      return;
-    }
-
-    const headers = ["Project Name", "Date", "Type", "Amount", "Note"];
-    const rows = transactions.map(t => {
-      const project = projects.find(p => p.id === t.projectId);
-      return [
-        project ? project.name : "Archived Project",
-        t.date,
-        t.type.toUpperCase(),
-        t.amount,
-        t.note || ""
-      ];
-    });
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const dateStr = new Date().toISOString().split('T')[0];
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `FinanceFlow_Backup_${dateStr}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   // Transaction Handlers
@@ -204,16 +152,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       <Sidebar 
         projects={projects} 
         activeProjectId={activeProjectId} 
-        onSelectProject={(id) => { setActiveProjectId(id); setIsSidebarOpen(false); setActiveView('dashboard'); }} 
+        onSelectProject={(id) => { setActiveProjectId(id); setIsSidebarOpen(false); }} 
         onAddProject={handleAddProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        // Fix: Added required user, activeView and onSetView props to Sidebar
-        user={user}
-        activeView={activeView}
-        onSetView={setActiveView}
       />
       
       {isSidebarOpen && (
@@ -221,51 +165,36 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       )}
       
       <main className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Fix: Added missing onSetView prop to Navbar */}
         <Navbar 
+          projects={projects} 
+          activeProjectId={activeProjectId} 
+          onSelectProject={setActiveProjectId}
           onToggleSidebar={() => setIsSidebarOpen(true)}
           user={user}
           onLogout={onLogout}
-          onExport={handleExportCSV}
-          globalBalance={globalBalance}
-          onSetView={setActiveView}
         />
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-          {/* Fix: Added conditional rendering for Users and Profile views based on activeView state */}
-          {activeView === 'users' && <UserManagement activeAdmin={user} />}
-          {activeView === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={() => {}} />}
-          
-          {activeView === 'dashboard' && (
-            <>
-              {activeProject ? (
-                <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-                  <ProjectHeader 
-                    project={activeProject} 
-                    transactions={transactions.filter(t => t.projectId === activeProject.id)} 
-                  />
+          {activeProject ? (
+            <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+              <ProjectHeader 
+                project={activeProject} 
+                transactions={transactions} 
+              />
 
-                  <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden ring-1 ring-slate-200/50">
-                    <CalendarView 
-                      projectId={activeProjectId}
-                      transactions={transactions.filter(t => t.projectId === activeProjectId)}
-                      onAddTransaction={handleOpenAddModal}
-                      onOpenDayDetail={handleOpenDayDetail}
-                      onDeleteTransaction={handleDeleteTransaction}
-                      activeProject={activeProject}
-                      // Fix: Added missing user prop to CalendarView
-                      user={user}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <EmptyState 
-                  onOpenSidebar={() => setIsSidebarOpen(true)} 
-                  globalBalance={globalBalance}
-                  projectCount={projects.length}
+              <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden ring-1 ring-slate-200/50">
+                <CalendarView 
+                  projectId={activeProjectId}
+                  transactions={transactions.filter(t => t.projectId === activeProjectId)}
+                  onAddTransaction={handleOpenAddModal}
+                  onOpenDayDetail={handleOpenDayDetail}
+                  onDeleteTransaction={handleDeleteTransaction}
+                  activeProject={activeProject}
                 />
-              )}
-            </>
+              </div>
+            </div>
+          ) : (
+            <EmptyState onOpenSidebar={() => setIsSidebarOpen(true)} />
           )}
         </div>
       </main>
@@ -287,8 +216,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
           onAdd={handleOpenAddModal} 
-          // Fix: Added missing user prop to DayDetailModal
-          user={user}
         />
       )}
     </div>

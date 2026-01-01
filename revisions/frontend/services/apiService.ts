@@ -11,15 +11,13 @@ export const apiService = {
     return res.json();
   },
 
-  // Fix: Added icon parameter to project creation API call
-  createProject: async (name: string, description: string, icon: string): Promise<Project> => {
+  createProject: async (name: string, description: string): Promise<Project> => {
     const res = await fetch(`${API_BASE}/projects/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
         description,
-        icon,
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
       }),
     });
@@ -27,12 +25,11 @@ export const apiService = {
     return res.json();
   },
 
-  // Fix: Added icon parameter to project update API call
-  updateProject: async (id: string, name: string, description: string, icon: string): Promise<Project> => {
+  updateProject: async (id: string, name: string, description: string): Promise<Project> => {
     const res = await fetch(`${API_BASE}/projects/${id}/`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, icon }),
+      body: JSON.stringify({ name, description }),
     });
     if (!res.ok) throw new Error('Failed to update project');
     return res.json();
