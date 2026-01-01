@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-c$a%3ewk+f$nsx0jr@u%!+)2i5ztx89m-v-rgnv)t5o5v4-4&v
 
 
 
-ALLOWED_HOSTS = ["hotelfinancemanager.pythonanywhere.com",'127.0.0.1',]
+ALLOWED_HOSTS = ["projectsfinanceflow.pythonanywhere.com",'127.0.0.1',]
 
 
 # Application definition
