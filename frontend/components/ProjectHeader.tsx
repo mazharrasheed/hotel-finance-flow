@@ -20,7 +20,7 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, transactions }) 
           className="w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-xl text-white animate-in zoom-in duration-500" 
           style={{ backgroundColor: project.color }}
         >
-          <DynamicIcon name={project.icon || 'Briefcase'} size={32} />
+          <DynamicIcon name={project.icon || 'Briefcase'} size={25} />
         </div>
         <div className="min-w-0 py-1">
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 truncate tracking-tight">
