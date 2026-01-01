@@ -50,27 +50,28 @@
       }
 
       /* Force everything to start at the top and remove all scrollable heights */
-      html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-  }
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+      }
 
-  /* Allow scrolling containers to expand */
-  [class*="overflow-hidden"],
-  [class*="overflow-y-auto"] {
-    overflow: visible !important;
-  }
+      /* Allow scrolling containers to expand */
+      [class*="overflow-hidden"],
+      [class*="overflow-y-auto"] {
+        overflow: visible !important;
+      }
 
-  /* Fix h-screen clipping WITHOUT killing layout */
-  [class*="h-screen"] {
-    min-height: auto !important;
-    height: auto !important;
-  }
+      /* Fix h-screen clipping WITHOUT killing layout */
+      [class*="h-screen"] {
+        min-height: auto !important;
+        height: auto !important;
+      }
 
-  #root {
-    display: block !important;
-  }
+      #root {
+        display: block !important;
+      }
 
       /* Specifically target and kill the padding on the main dashboard container */
       .overflow-y-auto {
@@ -136,7 +137,7 @@
       .shadow-lg,
       .shadow-md,
       .shadow-sm,
-      .rounded-[2rem],
+      .rounded- \[2rem\],
       .rounded-3xl,
       .rounded-2xl {
         box-shadow: none !important;
