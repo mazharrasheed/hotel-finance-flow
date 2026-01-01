@@ -26,9 +26,9 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project, transactions }) 
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 truncate tracking-tight">
             {project.name}
           </h1>
-          <p className="text-slate-400 mt-1 text-sm md:text-base font-medium line-clamp-1">
+          {/* <p className="text-slate-400 mt-1 text-sm md:text-base font-medium line-clamp-1">
             {project.description || 'No project description provided'}
-          </p>
+          </p> */}
         </div>
       </div>
       
