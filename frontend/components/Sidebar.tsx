@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Project, User } from '../types';
 import { 
-  Plus, X, Trash2, Edit2, Wallet, LayoutDashboard,
+  Plus, X, Trash2, Edit2, Hotel, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
-  BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck
+  BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
+  ConciergeBell, Bed, Utensils, Coffee, Waves, Key
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 
@@ -18,13 +19,14 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
-  activeView: 'dashboard' | 'users' | 'profile';
-  onSetView: (view: 'dashboard' | 'users' | 'profile') => void;
+  activeView: 'dashboard' | 'users' | 'profile' | 'reports';
+  onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
 }
 
 const AVAILABLE_ICONS = [
-  'Target', 'Layers', 'PieChart', 'Users', 'Cpu', 'Shield',
-  'BarChart3', 'FileText', 'Award', 'Zap', 'Briefcase'
+  'Briefcase', 'Target', 'Layers', 'PieChart', 'Hotel', 'ConciergeBell', 
+  'Bed', 'Utensils', 'Coffee', 'Waves', 'Key', 'Users', 'Cpu', 'Shield',
+  'BarChart3', 'FileText', 'Award', 'Zap'
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -50,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onSelectProject(null);
   };
 
-  const handleManagementClick = (view: 'users' | 'profile') => {
+  const handleManagementClick = (view: 'users' | 'profile' | 'reports') => {
     onSetView(view);
     onSelectProject(null);
   };
@@ -91,14 +93,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={`
-      fixed lg:relative inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out
+      fixed lg:relative inset-y-0 left-0 w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out print:hidden
       ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
     `}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2 text-indigo-600 font-bold text-xl cursor-pointer" onClick={handleDashboardClick}>
-            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-md">
-              <Wallet size={20} strokeWidth={2.5} />
+          <div className="flex items-center gap-2 text-indigo-700 font-black text-xl cursor-pointer" onClick={handleDashboardClick}>
+            <div className="bg-indigo-700 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
+              <Hotel size={20} strokeWidth={2.5} />
             </div>
             FinanceFlow
           </div>
@@ -113,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-100 active:scale-[0.97]"
           >
             <Plus size={18} />
-            New Project
+            Add Project
           </button>
         )}
       </div>
@@ -136,50 +138,32 @@ const Sidebar: React.FC<SidebarProps> = ({
           }`}>
             <LayoutDashboard size={20} />
           </div>
-          <span className="text-[13px] tracking-tight">Portfolio Overview</span>
+          <span className="text-[13px] tracking-tight">Project Overview</span>
         </button>
 
-        {user.role === 'admin' && (
-          <button
-            onClick={() => handleManagementClick('users')}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-              activeView === 'users' 
-                ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-                : 'text-slate-600 border-transparent hover:bg-slate-50'
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-              activeView === 'users' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
-            }`}>
-              <UserCheck size={20} />
-            </div>
-            <span className="text-[13px] tracking-tight">User Control</span>
-          </button>
-        )}
-
         <button
-          onClick={() => handleManagementClick('profile')}
+          onClick={() => handleManagementClick('reports')}
           className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-            activeView === 'profile' 
+            activeView === 'reports' 
               ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
               : 'text-slate-600 border-transparent hover:bg-slate-50'
           }`}
         >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-            activeView === 'profile' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
+            activeView === 'reports' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
           }`}>
-            <Settings size={20} />
+            <FileText size={20} />
           </div>
-          <span className="text-[13px] tracking-tight">Profile Settings</span>
+          <span className="text-[13px] tracking-tight">Ledger Reports</span>
         </button>
 
         <div className="px-3 pt-6 pb-2">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project Vault</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Projects</span>
         </div>
         
         {projects.length === 0 ? (
           <div className="px-3 py-4 text-center">
-            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">Vault currently empty</p>
+            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">No active projects</p>
           </div>
         ) : (
           projects.map(project => (
@@ -209,19 +193,57 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))
         )}
+
+        <div className="px-3 pt-6 pb-2 border-t border-slate-100 mt-4">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Account</span>
+        </div>
+
+        {user.role === 'admin' && (
+          <button
+            onClick={() => handleManagementClick('users')}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
+              activeView === 'users' 
+                ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
+                : 'text-slate-600 border-transparent hover:bg-slate-50'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
+              activeView === 'users' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
+            }`}>
+              <UserCheck size={20} />
+            </div>
+            <span className="text-[13px] tracking-tight">Staffing</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => handleManagementClick('profile')}
+          className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
+            activeView === 'profile' 
+              ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
+              : 'text-slate-600 border-transparent hover:bg-slate-50'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
+            activeView === 'profile' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
+          }`}>
+            <Settings size={20} />
+          </div>
+          <span className="text-[13px] tracking-tight">Settings</span>
+        </button>
       </nav>
 
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl animate-in fade-in zoom-in border border-slate-100">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black text-slate-800">{editingProject ? 'Edit Asset' : 'New Asset'}</h3>
+              <h3 className="text-2xl font-black text-slate-800">{editingProject ? 'Modify Project' : 'New Project'}</h3>
               <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400"><X size={24} /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Icon Identity</label>
-                <div className="grid grid-cols-5 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Icon</label>
+                <div className="grid grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto custom-scrollbar">
                   {AVAILABLE_ICONS.map(icon => (
                     <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${selectedIcon === icon ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white'}`}>
                       <DynamicIcon name={icon} size={18} />
@@ -230,11 +252,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Label</label>
-                <input autoFocus type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Project Name" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700" />
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Name</label>
+                <input autoFocus type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g., Construction Phase 1" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700" />
               </div>
               <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl active:scale-[0.98]">
-                {editingProject ? 'Commit Update' : 'Initialize Vault'}
+                {editingProject ? 'Update Project' : 'Create Project'}
               </button>
             </form>
           </div>

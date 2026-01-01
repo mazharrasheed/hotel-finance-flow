@@ -1,0 +1,94 @@
+/* ================= PRINT RESET ================= */
+@media print {
+
+  @page {
+    size: A4;
+    margin: 12mm 10mm 14mm 10mm; /* TOP RIGHT BOTTOM LEFT */
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  /* Remove spacing that causes half-page gaps */
+  section, header, footer, div {
+    margin-top: 0 !important;
+  }
+
+  /* Prevent browser from inserting phantom page breaks */
+  * {
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+}
+/* ================= PRINT RESET ================= */
+@media print {
+
+  @page {
+    size: A4;
+    margin: 12mm 10mm 14mm 10mm; /* TOP RIGHT BOTTOM LEFT */
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  /* Remove spacing that causes half-page gaps */
+  section, header, footer, div {
+    margin-top: 0 !important;
+  }
+
+  /* Prevent browser from inserting phantom page breaks */
+  * {
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+}
