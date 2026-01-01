@@ -7,8 +7,6 @@ import { format } from 'date-fns';
 interface DayDetailModalProps {
   date: string;
   transactions: Transaction[];
-  hasProjectIncome: boolean;
-  hasProjectExpense: boolean;
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<Transaction>) => void;
   onDelete: (id: string) => void;
@@ -19,8 +17,6 @@ interface DayDetailModalProps {
 const DayDetailModal: React.FC<DayDetailModalProps> = ({ 
   date, 
   transactions, 
-  hasProjectIncome,
-  hasProjectExpense,
   onClose, 
   onUpdate, 
   onDelete,
@@ -72,28 +68,8 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No records for this date</p>
               {user.permissions.canAddTransaction && (
                 <div className="mt-6 flex justify-center gap-3">
-                  <button 
-                    disabled={hasProjectIncome}
-                    onClick={() => onAdd('income', date)} 
-                    className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
-                      hasProjectIncome 
-                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
-                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
-                  >
-                    Add Income
-                  </button>
-                  <button 
-                    disabled={hasProjectExpense}
-                    onClick={() => onAdd('expense', date)} 
-                    className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
-                      hasProjectExpense 
-                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
-                        : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                    }`}
-                  >
-                    Add Expense
-                  </button>
+                  <button onClick={() => onAdd('income', date)} className="px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all active:scale-95 shadow-sm">Add Income</button>
+                  <button onClick={() => onAdd('expense', date)} className="px-5 py-2.5 bg-rose-50 text-rose-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95 shadow-sm">Add Expense</button>
                 </div>
               )}
             </div>
@@ -104,18 +80,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                   <div className="flex items-center justify-between mb-4 px-1">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Inbound Revenue</h3>
                     {user.permissions.canAddTransaction && (
-                      <button 
-                        disabled={hasProjectIncome}
-                        onClick={() => onAdd('income', date)} 
-                        className={`p-1.5 rounded-lg transition-all shadow-sm ${
-                          hasProjectIncome
-                            ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                        }`}
-                        title={hasProjectIncome ? "Income already recorded" : "Add Income"}
-                      >
-                        <Plus size={14} />
-                      </button>
+                      <button onClick={() => onAdd('income', date)} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all shadow-sm"><Plus size={14} /></button>
                     )}
                   </div>
                   <div className="space-y-3">
@@ -137,25 +102,14 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                 </div>
               )}
 
-              <div>
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project Expenses</h3>
-                  {user.permissions.canAddTransaction && (
-                    <button 
-                      disabled={hasProjectExpense}
-                      onClick={() => onAdd('expense', date)} 
-                      className={`p-1.5 rounded-lg transition-all shadow-sm ${
-                        hasProjectExpense
-                          ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                          : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                      }`}
-                      title={hasProjectExpense ? "Expense already recorded" : "Add Expense"}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  )}
-                </div>
-                {expense.length > 0 ? (
+              {expense.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project Expenses</h3>
+                    {user.permissions.canAddTransaction && (
+                      <button onClick={() => onAdd('expense', date)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all shadow-sm"><Plus size={14} /></button>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {expense.map(t => (
                       <TransactionRow 
@@ -172,25 +126,6 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                       />
                     ))}
                   </div>
-                ) : (
-                  <p className="text-center py-4 text-xs font-bold text-slate-300 uppercase tracking-widest">No expenses today</p>
-                )}
-              </div>
-
-              {/* Special logic for adding income when only expenses exist */}
-              {income.length === 0 && (
-                <div className="pt-4 border-t border-slate-100 text-center">
-                  <button 
-                    disabled={hasProjectIncome}
-                    onClick={() => onAdd('income', date)}
-                    className={`px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-sm ${
-                      hasProjectIncome
-                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100 active:scale-95'
-                    }`}
-                  >
-                    {hasProjectIncome ? 'Budget Recorded' : 'Initialize Project Revenue'}
-                  </button>
                 </div>
               )}
             </>

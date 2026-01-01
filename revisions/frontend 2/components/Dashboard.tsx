@@ -59,18 +59,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     return transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
   }, [transactions]);
 
-  // Fix: Added logic to track if an income transaction exists for the current project
-  const hasProjectIncome = useMemo(() => {
-    if (!activeProjectId) return false;
-    return transactions.some(t => t.projectId === activeProjectId && t.type === 'income');
-  }, [transactions, activeProjectId]);
-
-  // Fix: Added logic to track if an expense transaction exists for the current project
-  const hasProjectExpense = useMemo(() => {
-    if (!activeProjectId) return false;
-    return transactions.some(t => t.projectId === activeProjectId && t.type === 'expense');
-  }, [transactions, activeProjectId]);
-
   const activeProject = useMemo(() => 
     projects.find(p => p.id === activeProjectId) || null
   , [projects, activeProjectId]);
@@ -295,10 +283,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         <DayDetailModal 
           date={selectedDate} 
           transactions={activeDayTransactions} 
-          // Fix: Added missing hasProjectIncome prop to DayDetailModal to resolve property missing error
-          hasProjectIncome={hasProjectIncome}
-          // Fix: Added missing hasProjectExpense prop to DayDetailModal to resolve property missing error
-          hasProjectExpense={hasProjectExpense}
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 

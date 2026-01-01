@@ -57,14 +57,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     end: endDate,
   });
 
-  const projectHasIncome = useMemo(() => {
-    return transactions.some(t => t.type === 'income');
-  }, [transactions]);
-
-  const projectHasExpense = useMemo(() => {
-    return transactions.some(t => t.type === 'expense');
-  }, [transactions]);
-
   const generateInsight = async () => {
     setIsLoadingInsight(true);
     const text = await getFinancialInsights(activeProject, transactions);
@@ -181,26 +173,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     {user.permissions.canAddTransaction && (
                       <div className="lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex gap-1">
                         <button 
-                          disabled={projectHasIncome}
                           onClick={(e) => { e.stopPropagation(); onAddTransaction('income', dateKey); }}
-                          className={`p-1 md:p-1.5 rounded-md transition-all ${
-                            projectHasIncome 
-                              ? 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50' 
-                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          }`}
-                          title={projectHasIncome ? "Income already recorded for project" : "Add Income"}
+                          className="p-1 md:p-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors"
+                          title="Add Income"
                         >
                           <Plus size={12} />
                         </button>
                         <button 
-                          disabled={projectHasExpense}
                           onClick={(e) => { e.stopPropagation(); onAddTransaction('expense', dateKey); }}
-                          className={`p-1 md:p-1.5 rounded-md transition-all ${
-                            projectHasExpense
-                              ? 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50'
-                              : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                          }`}
-                          title={projectHasExpense ? "Expense already recorded for project" : "Add Expense"}
+                          className="p-1 md:p-1.5 bg-rose-100 text-rose-700 rounded-md hover:bg-rose-200 transition-colors"
+                          title="Add Expense"
                         >
                           <Plus size={12} />
                         </button>

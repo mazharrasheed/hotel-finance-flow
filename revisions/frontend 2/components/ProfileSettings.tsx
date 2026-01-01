@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
-import { Shield, Lock, Check, Loader2, UserCheck, Mail, Camera, Trash2, MapPin, Phone, Globe, Info, Edit3, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Key, Check, Loader2, UserCheck, Mail, Camera, Trash2, MapPin, Phone, Globe, Info, Edit3, Image as ImageIcon } from 'lucide-react';
 
 interface ProfileSettingsProps {
   activeUser: User;
@@ -13,7 +13,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // Personal Info state
   const [profileData, setProfileData] = useState({
@@ -54,6 +53,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
         const base64String = reader.result as string;
         updateUserProfile({ [type === 'avatar' ? 'avatar' : 'coverImage']: base64String });
         setMessage({ type: 'success', text: `${type === 'avatar' ? 'Profile picture' : 'Cover image'} synchronized!` });
+        // Reset input value so the same file can be selected again if deleted
         e.target.value = '';
       };
       reader.readAsDataURL(file);
@@ -63,6 +63,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
   const removeImage = (type: 'avatar' | 'cover') => {
     updateUserProfile({ [type === 'avatar' ? 'avatar' : 'coverImage']: undefined });
     setMessage({ type: 'success', text: `${type === 'avatar' ? 'Profile picture' : 'Cover image'} removed.` });
+    // Ensure input is cleared
     if (type === 'avatar' && avatarInputRef.current) avatarInputRef.current.value = '';
     if (type === 'cover' && coverInputRef.current) coverInputRef.current.value = '';
   };
@@ -116,9 +117,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
 
       updateUserProfile({ password: newPassword });
       
-      setMessage({ type: 'success', text: 'Password updated successfully!' });
+      setMessage({ type: 'success', text: 'Credentials updated successfully!' });
       setOldPassword(''); setNewPassword(''); setConfirmPassword('');
-      setIsChangingPassword(false);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -128,7 +128,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
 
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 font-['Inter'] pb-20">
+      {/* Facebook-style Header */}
       <div className="relative mb-32 md:mb-40">
+        {/* Cover Photo */}
         <div className="h-48 md:h-72 w-full bg-slate-200 rounded-[2.5rem] overflow-hidden relative group border border-slate-100 shadow-inner">
           {activeUser.coverImage ? (
             <img src={activeUser.coverImage} className="w-full h-full object-cover" alt="Cover" />
@@ -150,6 +152,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
           <input type="file" ref={coverInputRef} onChange={(e) => handleFileChange(e, 'cover')} className="hidden" accept="image/*" />
         </div>
 
+        {/* Profile Avatar Overlay */}
         <div className="absolute -bottom-20 md:-bottom-24 left-8 md:left-12 flex items-end gap-6">
           <div className="relative group">
             <div className={`w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] ring-8 ring-slate-50 overflow-hidden flex items-center justify-center shadow-2xl ${activeUser.avatar ? 'bg-white' : 'bg-indigo-600 text-white'}`}>
@@ -177,6 +180,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10 md:mt-16">
+        {/* Left Column: Summary & Security */}
         <div className="space-y-8">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
@@ -204,44 +208,24 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
             </div>
           </div>
 
-          <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-2xl w-fit"><Shield size={24} /></div>
-              <button 
-                onClick={() => setIsChangingPassword(!isChangingPassword)}
-                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all"
-              >
-                {isChangingPassword ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                {isChangingPassword ? 'Cancel' : 'Change Password'}
-              </button>
-            </div>
+          <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200">
+            <div className="p-3 bg-white/20 rounded-2xl w-fit mb-4"><Shield size={24} /></div>
             <h4 className="font-black text-lg mb-2">Security Hub</h4>
             <p className="text-indigo-100 text-xs font-medium leading-relaxed mb-6">
-              Manage your login password and access protocols. Keep your password updated regularly.
+              Manage your login keys and access protocols. Keep your secret key updated regularly.
             </p>
-            
-            {isChangingPassword && (
-              <form onSubmit={handlePasswordChange} className="space-y-4 animate-in slide-in-from-top-4 duration-300">
-                 <div className="space-y-1">
-                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">Current Password</label>
-                   <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="Current Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 </div>
-                 <div className="space-y-1">
-                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">New Password</label>
-                   <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 </div>
-                 <div className="space-y-1">
-                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">Confirm New Password</label>
-                   <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm New" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 </div>
-                 <button disabled={isUpdating} type="submit" className="w-full py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
-                    {isUpdating ? <Loader2 className="animate-spin" size={14} /> : 'Update Password'}
-                 </button>
-              </form>
-            )}
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+               <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="Current Key" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200 text-sm font-bold" />
+               <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New Key" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200 text-sm font-bold" />
+               <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm New" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200 text-sm font-bold" />
+               <button disabled={isUpdating} type="submit" className="w-full py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all">
+                  Update Keys
+               </button>
+            </form>
           </div>
         </div>
 
+        {/* Right Column: Edit Info */}
         <div className="lg:col-span-2 space-y-8">
            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
               <div className="flex items-center justify-between mb-8">

@@ -64,16 +64,6 @@ const App: React.FC = () => {
     return transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
   }, [transactions]);
 
-  const hasProjectIncome = useMemo(() => {
-    if (!activeProjectId) return false;
-    return transactions.some(t => t.projectId === activeProjectId && t.type === 'income');
-  }, [transactions, activeProjectId]);
-
-  const hasProjectExpense = useMemo(() => {
-    if (!activeProjectId) return false;
-    return transactions.some(t => t.projectId === activeProjectId && t.type === 'expense');
-  }, [transactions, activeProjectId]);
-
   const handleAddProject = (name: string, description: string, icon: string) => {
     const newProject: Project = {
       id: Math.random().toString(36).substr(2, 9),
@@ -83,7 +73,6 @@ const App: React.FC = () => {
       color: `hsl(${Math.random() * 360}, 70%, 55%)`,
       icon: icon || 'Briefcase',
     };
-    // Newly added project is placed at the top of the list
     setProjects(prev => [newProject, ...prev]);
     setActiveProjectId(newProject.id);
     setView('dashboard');
@@ -102,19 +91,6 @@ const App: React.FC = () => {
 
   const handleAddTransaction = (data: Omit<Transaction, 'id' | 'projectId' | 'date'>) => {
     if (!activeProjectId || !selectedDate) return;
-    
-    // Safety check to prevent multiple incomes if the logic is bypassed
-    if (data.type === 'income' && hasProjectIncome) {
-      alert("Income is already recorded for this project.");
-      return;
-    }
-
-    // Safety check to prevent multiple expenses if the logic is bypassed
-    if (data.type === 'expense' && hasProjectExpense) {
-      alert("Expense is already recorded for this project.");
-      return;
-    }
-
     const newTransaction: Transaction = {
       id: Math.random().toString(36).substr(2, 9),
       projectId: activeProjectId,
@@ -131,63 +107,6 @@ const App: React.FC = () => {
 
   const handleDeleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
-  };
-
-  const handleExportCSV = () => {
-    if (transactions.length === 0 && projects.length === 0) {
-      alert("No records found to export.");
-      return;
-    }
-
-    const transactionHeaders = ["Section", "Project", "Date", "Type", "Amount (PKR)", "Reference"];
-    const transactionRows = transactions.map(t => {
-      const project = projects.find(p => p.id === t.projectId);
-      return [
-        "LOG",
-        project ? project.name : "Archived Asset",
-        t.date,
-        t.type.toUpperCase(),
-        t.amount,
-        t.note || "General"
-      ];
-    });
-
-    // Calculate Project Summaries
-    const projectSummaries = projects.map(p => {
-      const pTransactions = transactions.filter(t => t.projectId === p.id);
-      const income = pTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-      const expense = pTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-      return ["SUMMARY", p.name, "-", "BALANCE", income - expense, `In: ${income} | Out: ${expense}`];
-    });
-
-    const globalSummary = [
-      ["TOTALS", "OVERALL PORTFOLIO", "-", "NET BALANCE", globalBalance, "Full Backup Data"]
-    ];
-
-    const csvContent = [
-      transactionHeaders.join(","),
-      ...transactionRows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")),
-      "",
-      "--- PROJECT BALANCES ---",
-      "Type,Project Name,Date,Field,Balance/Amount,Details",
-      ...projectSummaries.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")),
-      "",
-      "--- GLOBAL PORTFOLIO BALANCE ---",
-      ...globalSummary.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const today = new Date().toISOString().split('T')[0];
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `FinanceFlow_Backup_${today}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   if (isInitializing) {
@@ -226,7 +145,7 @@ const App: React.FC = () => {
           onToggleSidebar={() => setIsSidebarOpen(true)}
           user={user}
           onLogout={handleLogout}
-          onExport={handleExportCSV}
+          onExport={() => alert('Exporting centralized ledger to CSV...')}
           globalBalance={globalBalance}
           onSetView={setView}
         />
@@ -281,8 +200,6 @@ const App: React.FC = () => {
         <DayDetailModal 
           date={selectedDate} 
           transactions={transactions.filter(t => t.projectId === activeProjectId && t.date === selectedDate)} 
-          hasProjectIncome={hasProjectIncome}
-          hasProjectExpense={hasProjectExpense}
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
