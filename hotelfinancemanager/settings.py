@@ -178,7 +178,7 @@ CORS_ALLOWED_ORIGINS = [
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "anmoltailor.pythonanywhere.com",
+    "projectsfinanceflow.pythonanywhere.com",
     '127.0.2.2'
 ]
 
@@ -207,7 +207,7 @@ else:
 
 
 # For password reset links
-FRONTEND_URL = "https://anmoltailor.pythonanywhere.com"  # or your deployed React frontend URL
+FRONTEND_URL = "https://projectsfinanceflow.pythonanywhere.com"  # or your deployed React frontend URL
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
