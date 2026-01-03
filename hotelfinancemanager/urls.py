@@ -26,50 +26,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
 ]
 
-# Frontend routing
+
 urlpatterns += [
-    # Main frontend at /
-    re_path(r'^$', TemplateView.as_view(template_name='index.html', extra_context={'frontend': 'frontend'})),
-
-    # Second frontend at /project
-    re_path(r'^project/?$', TemplateView.as_view(template_name='index.html', extra_context={'frontend': 'frontend2'})),
-
-    # Catch-all for frontend routing (optional)
-    re_path(r'^((?!admin|api|api-token-auth).*)$', TemplateView.as_view(template_name='index.html')),
+    path('api-token-auth/', obtain_auth_token),
+     # React frontend
+    re_path(r'^$', TemplateView.as_view(template_name='index.html')),
+    re_path(r'^(?!admin/).*$', TemplateView.as_view(template_name='index.html')),
 ]
-
-# urlpatterns += [
-#     path('', TemplateView.as_view(template_name="app_main/index.html")),
-#     path('project/', TemplateView.as_view(template_name="app_project/index.html")),
-# ]
-
-# urlpatterns += [
-#     path('api-token-auth/', obtain_auth_token),
-#      # React frontend
-#     re_path(r'^$', TemplateView.as_view(template_name='index.html')),
-#     re_path(r'^(?!admin/).*$', TemplateView.as_view(template_name='index.html')),
-# ]
-
-# React App #2 → /project/*
-# urlpatterns += [
-#     re_path(
-#         r'^project/?$',
-#         TemplateView.as_view(template_name='app_project/index.html')
-#     ),
-#     re_path(
-#         r'^project/.*$',
-#         TemplateView.as_view(template_name='app_project/index.html')
-#     ),
-# ]
-
-# # React App #1 → /
-# urlpatterns += [
-#     re_path(
-#         r'^$',
-#         TemplateView.as_view(template_name='app_main/index.html')
-#     ),
-#     re_path(
-#         r'^(?!admin|api|project).*$',   # IMPORTANT exclusion
-#         TemplateView.as_view(template_name='app_main/index.html')
-#     ),
-# ]

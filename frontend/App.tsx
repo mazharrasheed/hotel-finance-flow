@@ -14,7 +14,7 @@ import ProfileSettings from './components/ProfileSettings';
 import ReportsView from './components/ReportsView';
 import { Loader2, ConciergeBell, Bed, Utensils, Key, Coffee } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import './index.css';
+
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
