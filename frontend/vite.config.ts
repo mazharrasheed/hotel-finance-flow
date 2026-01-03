@@ -26,12 +26,12 @@ export default defineConfig(({ mode }) => {
       },
     },
 
-    build: {
-      outDir: 'dist',
-      assetsDir: 'assets',
-      rollupOptions: {
-        input: 'index.html',
-      },
-    },
+   build: {
+  outDir: 'dist',
+  assetsDir: 'assets',
+  rollupOptions: {
+    input: 'index.html', // your main html in frontend/
+  },
+},
   };
 });
