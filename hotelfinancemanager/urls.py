@@ -26,6 +26,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
 ]
 
+urlpatterns += [
+    path('', TemplateView.as_view(template_name="app_main/index.html")),
+    path('project/', TemplateView.as_view(template_name="app_project/index.html")),
+]
 
 # urlpatterns += [
 #     path('api-token-auth/', obtain_auth_token),
@@ -35,25 +39,25 @@ urlpatterns = [
 # ]
 
 # React App #2 → /project/*
-urlpatterns += [
-    re_path(
-        r'^project/?$',
-        TemplateView.as_view(template_name='app_project/index.html')
-    ),
-    re_path(
-        r'^project/.*$',
-        TemplateView.as_view(template_name='app_project/index.html')
-    ),
-]
+# urlpatterns += [
+#     re_path(
+#         r'^project/?$',
+#         TemplateView.as_view(template_name='app_project/index.html')
+#     ),
+#     re_path(
+#         r'^project/.*$',
+#         TemplateView.as_view(template_name='app_project/index.html')
+#     ),
+# ]
 
-# React App #1 → /
-urlpatterns += [
-    re_path(
-        r'^$',
-        TemplateView.as_view(template_name='app_main/index.html')
-    ),
-    re_path(
-        r'^(?!admin|api|project).*$',   # IMPORTANT exclusion
-        TemplateView.as_view(template_name='app_main/index.html')
-    ),
-]
+# # React App #1 → /
+# urlpatterns += [
+#     re_path(
+#         r'^$',
+#         TemplateView.as_view(template_name='app_main/index.html')
+#     ),
+#     re_path(
+#         r'^(?!admin|api|project).*$',   # IMPORTANT exclusion
+#         TemplateView.as_view(template_name='app_main/index.html')
+#     ),
+# ]
