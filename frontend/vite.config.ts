@@ -27,10 +27,11 @@ export default defineConfig(({ mode }) => {
     },
 
     build: {
-      cssCodeSplit: true,   // 🔴 FORCE CSS FILE OUTPUT
       outDir: 'dist',
       assetsDir: 'assets',
-      emptyOutDir: true,
+      rollupOptions: {
+        input: 'index.html',
+      },
     },
   };
 });

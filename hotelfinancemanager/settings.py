@@ -121,19 +121,16 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 
-TEMPLATES[0]["DIRS"] = [
-    BASE_DIR / "templates",
-]
-
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "frontend" / "dist" / "assets",
+    BASE_DIR / "frontend2" / "dist" / "assets",
+]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
+TEMPLATES[0]['DIRS'] = [
+    BASE_DIR / "frontend" / "dist",
+    BASE_DIR / "frontend2" / "dist",
 ]
 
 # Default primary key field type
