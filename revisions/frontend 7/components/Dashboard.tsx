@@ -164,7 +164,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   };
 
   const handleOpenAddModal = (type: 'income' | 'expense', date: string) => {
-    setIsDayDetailOpen(false); // Fix: Ensure detail modal is closed
     setModalType(type);
     setSelectedDate(date);
     setIsModalOpen(true);
@@ -252,14 +251,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   </div>
                 </div>
               ) : (
-                // Fix: Pass missing projects, transactions, and onSelectProject props to EmptyState
                 <EmptyState 
                   onOpenSidebar={() => setIsSidebarOpen(true)} 
                   globalBalance={globalBalance}
                   projectCount={projects.length}
-                  projects={projects}
-                  transactions={transactions}
-                  onSelectProject={setActiveProjectId}
                 />
               )}
             </>

@@ -31,17 +31,6 @@ const App: React.FC = () => {
   const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // Warning before closing the tab
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = ''; 
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
   useEffect(() => {
     const savedActiveUser = localStorage.getItem('finance_active_user');
     const savedProjects = localStorage.getItem('finance_projects');
@@ -83,9 +72,8 @@ const App: React.FC = () => {
       description,
       createdAt: Date.now(),
       color: `hsl(${Math.random() * 360}, 70%, 55%)`,
-      icon: icon || 'Briefcase',
+      icon: icon || 'Hotel',
     };
-    // Prepend to array so new projects show at the top
     setProjects(prev => [newProject, ...prev]);
     setActiveProjectId(newProject.id);
     setView('dashboard');
@@ -192,7 +180,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden relative font-['Inter']">
-      {/* Background Icons */}
+      {/* Hospitality Floating Background Icons */}
       <div className="absolute top-20 right-40 text-indigo-600/5 pointer-events-none -rotate-12 print:hidden"><ConciergeBell size={180} /></div>
       <div className="absolute bottom-20 left-40 text-indigo-600/5 pointer-events-none rotate-12 print:hidden"><Key size={140} /></div>
       <div className="absolute top-1/2 left-10 text-indigo-600/5 pointer-events-none -translate-y-1/2 rotate-6 print:hidden"><Bed size={120} /></div>
@@ -202,7 +190,7 @@ const App: React.FC = () => {
       <Sidebar 
         projects={projects} 
         activeProjectId={activeProjectId} 
-        onSelectProject={(id) => { setActiveProjectId(id); setIsSidebarOpen(false); setView('dashboard'); }} 
+        onSelectProject={(id) => { setActiveProjectId(id); setIsSidebarOpen(false); }} 
         onAddProject={handleAddProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}
@@ -233,9 +221,9 @@ const App: React.FC = () => {
           {view === 'reports' && <ReportsView transactions={transactions} projects={projects} />}
           
           {view === 'dashboard' && (
-            <div className="max-w-7xl mx-auto h-full">
+            <>
               {activeProject ? (
-                <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
                   <ProjectHeader 
                     project={activeProject} 
                     transactions={transactions.filter(t => t.projectId === activeProject.id)} 
@@ -258,12 +246,9 @@ const App: React.FC = () => {
                   onOpenSidebar={() => setIsSidebarOpen(true)} 
                   globalBalance={globalBalance}
                   projectCount={projects.length}
-                  projects={projects}
-                  transactions={transactions}
-                  onSelectProject={setActiveProjectId}
                 />
               )}
-            </div>
+            </>
           )}
         </div>
       </main>
@@ -284,12 +269,7 @@ const App: React.FC = () => {
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
-          onAdd={(type, date) => { 
-            setIsDayDetailOpen(false); 
-            setModalType(type); 
-            setSelectedDate(date); 
-            setIsModalOpen(true); 
-          }} 
+          onAdd={(type, date) => { setModalType(type); setSelectedDate(date); setIsModalOpen(true); }} 
           user={user}
         />
       )}

@@ -1,0 +1,99 @@
+
+import React from 'react';
+import { User } from '../types';
+import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud } from 'lucide-react';
+
+interface NavbarProps {
+  onToggleSidebar: () => void;
+  user: User | null;
+  onLogout: () => void;
+  onExport: () => void;
+  globalBalance: number;
+  // Updated onSetView to include 'reports' as a valid view option
+  onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ 
+  onToggleSidebar,
+  user,
+  onLogout,
+  onExport,
+  globalBalance,
+  onSetView
+}) => {
+  const canBackup = user?.role === 'admin' || user?.permissions.canTakeBackup;
+
+  return (
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center px-4 md:px-8 shrink-0 overflow-hidden shadow-sm z-20">
+      <button 
+        onClick={onToggleSidebar}
+        className="p-2 mr-4 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden"
+        aria-label="Toggle menu"
+      >
+        <Menu size={24} />
+      </button>
+
+      <div className="flex-1 flex items-center">
+        <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight">Overview</h2>
+      </div>
+
+      <div className="flex items-center gap-2 md:gap-4 ml-4">
+        {user && canBackup && (
+          <button 
+            onClick={onExport}
+            className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 hover:bg-indigo-50 hover:border-indigo-100 hover:text-indigo-600 transition-all text-slate-500 group"
+            title="Backup all data to CSV"
+          >
+            <DownloadCloud size={16} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-tighter">Backup CSV</span>
+          </button>
+        )}
+
+        {user && (
+          <div className="flex items-center gap-2 bg-indigo-50/50 px-4 py-1.5 rounded-2xl border border-indigo-100">
+            <Globe size={16} className="text-indigo-500" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Net Worth</span>
+              <span className={`text-sm font-black leading-tight ${globalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                PKR {globalBalance.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {user && (
+          <div className="flex items-center gap-3 border-l border-slate-100 pl-4 md:pl-4">
+            <div 
+              className="hidden md:block text-right cursor-pointer group"
+              onClick={() => onSetView('profile')}
+            >
+              <p className="text-xs font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">{user.name}</p>
+              <p className="text-[10px] font-bold text-slate-400 leading-tight">View Profile</p>
+            </div>
+            
+            <div 
+              onClick={() => onSetView('profile')}
+              className="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm overflow-hidden shrink-0 cursor-pointer hover:ring-2 ring-indigo-200 transition-all active:scale-95"
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon size={18} />
+              )}
+            </div>
+            
+            <button 
+              onClick={onLogout}
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;

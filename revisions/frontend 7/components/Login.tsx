@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Hotel, Mail, Lock, Loader2, ArrowRight, AlertCircle, Info, ConciergeBell, Bed, Utensils, Key } from 'lucide-react';
+import { Hotel, Mail, Lock, Loader2, ArrowRight, ShieldCheck, AlertCircle, Info, ConciergeBell, Bed, Utensils, Key } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginProps {
@@ -30,15 +31,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isDemoVisible, setIsDemoVisible] = useState(false);
+  const [isDemoHidden, setIsDemoHidden] = useState(false);
 
   // Initialize DB and Check Demo Status
   useEffect(() => {
     const hidden = localStorage.getItem('finance_demo_hidden');
-    const db = getOrInitializeDB();
+    // Only hide if explicitly set to true by a successful previous login
+    setIsDemoHidden(hidden === 'true');
     
-    // Show demo credentials if it hasn't been hidden yet or if only the default admin exists
-    setIsDemoVisible(hidden !== 'true' || db.length <= 1);
+    // Ensure admin is in DB
+    getOrInitializeDB();
   }, []);
 
   const getOrInitializeDB = (): User[] => {
@@ -51,13 +53,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         localStorage.setItem('finance_users_db', JSON.stringify(db));
       } else {
         db = JSON.parse(dbStr);
-        // Ensure admin is in DB
-        if (!db.find(u => u.email.toLowerCase() === DEFAULT_ADMIN.email.toLowerCase())) {
+        // If for some reason admin is missing, add it back
+        if (!db.find(u => u.email === DEFAULT_ADMIN.email)) {
           db.push(DEFAULT_ADMIN);
           localStorage.setItem('finance_users_db', JSON.stringify(db));
         }
       }
     } catch (e) {
+      console.error("DB Initialization error, resetting...");
       db = [DEFAULT_ADMIN];
       localStorage.setItem('finance_users_db', JSON.stringify(db));
     }
@@ -70,15 +73,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
+      // Small delay for realism
       await new Promise(resolve => setTimeout(resolve, 800));
       const db = getOrInitializeDB();
       
-      const cleanEmail = email.toLowerCase().trim();
-      const cleanPass = password.trim();
-      
       const foundUser = db.find(u => 
-        u.email.toLowerCase().trim() === cleanEmail && 
-        u.password?.trim() === cleanPass
+        u.email.toLowerCase().trim() === email.toLowerCase().trim() && 
+        u.password === password
       );
       
       if (foundUser) {
@@ -97,10 +98,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 bg-slate-50 min-h-screen relative overflow-hidden">
-      <div className="absolute top-10 left-10 text-indigo-100 -rotate-12 animate-pulse"><ConciergeBell size={80} /></div>
-      <div className="absolute bottom-20 right-10 text-indigo-100 rotate-12 animate-bounce duration-1000"><Key size={60} /></div>
-      <div className="absolute top-1/2 right-20 text-indigo-100/50 -translate-y-1/2"><Bed size={120} /></div>
-      <div className="absolute bottom-10 left-1/4 text-indigo-100/50"><Utensils size={40} /></div>
+      {/* Background Floating Icons */}
+      <div className="absolute top-10 left-10 text-indigo-100 -rotate-12 animate-pulse print:hidden"><ConciergeBell size={80} /></div>
+      <div className="absolute bottom-20 right-10 text-indigo-100 rotate-12 animate-bounce duration-1000 print:hidden"><Key size={60} /></div>
+      <div className="absolute top-1/2 right-20 text-indigo-100/50 -translate-y-1/2 print:hidden"><Bed size={120} /></div>
+      <div className="absolute bottom-10 left-1/4 text-indigo-100/50 print:hidden"><Utensils size={40} /></div>
 
       <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-slate-200 p-8 md:p-12 border border-slate-100 relative z-10 overflow-hidden">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50" />
@@ -113,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <p className="text-slate-400 mt-2 font-medium italic uppercase tracking-widest text-[10px]">Project Management Portal</p>
         </div>
 
-        {isDemoVisible && (
+        {!isDemoHidden && (
           <div className="mb-8 p-5 bg-indigo-50 rounded-[1.5rem] border border-indigo-100 flex flex-col gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-2 text-indigo-700">
               <Info size={16} />

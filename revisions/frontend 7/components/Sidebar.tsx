@@ -5,7 +5,7 @@ import {
   Plus, X, Trash2, Edit2, Hotel, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
   BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
-  ConciergeBell, Bed, Utensils, Coffee, Waves, Key, Sparkles, FolderPlus
+  ConciergeBell, Bed, Utensils, Coffee, Waves, Key
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 
@@ -45,7 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('Briefcase');
 
   const handleDashboardClick = () => {
@@ -67,7 +66,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!user.permissions.canCreateProject) return;
     setEditingProject(null);
     setNewName('');
-    setNewDescription('');
     setSelectedIcon('Briefcase');
     setShowForm(true);
   };
@@ -77,7 +75,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!user.permissions.canEditProject) return;
     setEditingProject(p);
     setNewName(p.name);
-    setNewDescription(p.description || '');
     setSelectedIcon(p.icon || 'Briefcase');
     setShowForm(true);
   };
@@ -86,9 +83,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.preventDefault();
     if (newName.trim()) {
       if (editingProject) {
-        onUpdateProject(editingProject.id, newName, newDescription, selectedIcon);
+        onUpdateProject(editingProject.id, newName, '', selectedIcon);
       } else {
-        onAddProject(newName, newDescription, selectedIcon);
+        onAddProject(newName, '', selectedIcon);
       }
       setShowForm(false);
     }
@@ -96,13 +93,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={`
-      fixed lg:relative inset-y-0 left-0 w-72 bg-white/90 backdrop-blur-2xl border-r border-slate-200 flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out print:hidden
+      fixed lg:relative inset-y-0 left-0 w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out print:hidden
       ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
     `}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2 text-indigo-700 font-black text-xl cursor-pointer" onClick={handleDashboardClick}>
-            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
+            <div className="bg-indigo-700 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
               <Hotel size={20} strokeWidth={2.5} />
             </div>
             FinanceFlow
@@ -115,10 +112,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         {user.permissions.canCreateProject && (
           <button 
             onClick={openAdd}
-            className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-indigo-100 active:scale-[0.97] group"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-100 active:scale-[0.97]"
           >
-            <FolderPlus size={18} className="group-hover:scale-110 transition-transform" />
-            New Project
+            <Plus size={18} />
+            Add Project
           </button>
         )}
       </div>
@@ -141,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           }`}>
             <LayoutDashboard size={20} />
           </div>
-          <span className="text-[13px] tracking-tight">Project Hub</span>
+          <span className="text-[13px] tracking-tight">Project Overview</span>
         </button>
 
         <button
@@ -164,43 +161,41 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Projects</span>
         </div>
         
-        <div className="space-y-1">
-          {projects.length === 0 ? (
-            <div className="px-3 py-4 text-center">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">No projects yet</p>
-            </div>
-          ) : (
-            projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => handleProjectClick(project.id)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer border ${
-                  activeProjectId === project.id && activeView === 'dashboard'
-                    ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-                    : 'text-slate-600 border-transparent hover:bg-slate-50'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 text-white`} style={{ backgroundColor: project.color }}>
-                  <DynamicIcon name={project.icon || 'Briefcase'} size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="block truncate text-[13px] tracking-tight">{project.name}</span>
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {user.permissions.canEditProject && (
-                    <button onClick={(e) => openEdit(e, project)} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 shadow-sm"><Edit2 size={13} /></button>
-                  )}
-                  {user.permissions.canDeleteProject && (
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 shadow-sm"><Trash2 size={13} /></button>
-                  )}
-                </div>
+        {projects.length === 0 ? (
+          <div className="px-3 py-4 text-center">
+            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">No active projects</p>
+          </div>
+        ) : (
+          projects.map(project => (
+            <div
+              key={project.id}
+              onClick={() => handleProjectClick(project.id)}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer border ${
+                activeProjectId === project.id && activeView === 'dashboard'
+                  ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
+                  : 'text-slate-600 border-transparent hover:bg-slate-50'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 text-white`} style={{ backgroundColor: project.color }}>
+                <DynamicIcon name={project.icon || 'Briefcase'} size={20} />
               </div>
-            ))
-          )}
-        </div>
+              <div className="flex-1 min-w-0">
+                <span className="block truncate text-[13px] tracking-tight">{project.name}</span>
+              </div>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {user.permissions.canEditProject && (
+                  <button onClick={(e) => openEdit(e, project)} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 shadow-sm"><Edit2 size={13} /></button>
+                )}
+                {user.permissions.canDeleteProject && (
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 shadow-sm"><Trash2 size={13} /></button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
 
         <div className="px-3 pt-6 pb-2 border-t border-slate-100 mt-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Settings</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Account</span>
         </div>
 
         {user.role === 'admin' && (
@@ -210,14 +205,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               activeView === 'users' 
                 ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
                 : 'text-slate-600 border-transparent hover:bg-slate-50'
-          }`}
+            }`}
           >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
               activeView === 'users' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
             }`}>
               <UserCheck size={20} />
             </div>
-            <span className="text-[13px] tracking-tight">Access Control</span>
+            <span className="text-[13px] tracking-tight">Staffing</span>
           </button>
         )}
 
@@ -234,48 +229,36 @@ const Sidebar: React.FC<SidebarProps> = ({
           }`}>
             <Settings size={20} />
           </div>
-          <span className="text-[13px] tracking-tight">Profile Prefs</span>
+          <span className="text-[13px] tracking-tight">Settings</span>
         </button>
       </nav>
 
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl animate-in fade-in zoom-in border border-slate-100 overflow-hidden relative">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50" />
-            <div className="relative">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                  <Sparkles size={24} className="text-indigo-600" />
-                  {editingProject ? 'Edit Entity' : 'New Project'}
-                </h3>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400"><X size={24} /></button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Identity Icon</label>
-                  <div className="grid grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto custom-scrollbar">
-                    {AVAILABLE_ICONS.map(icon => (
-                      <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${selectedIcon === icon ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'text-slate-400 hover:bg-white'}`}>
-                        <DynamicIcon name={icon} size={18} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Name</label>
-                    <input autoFocus type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g., Downtown Site A" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Context / Description</label>
-                    <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="What is this project's purpose?" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 h-24 resize-none shadow-sm" />
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-100 active:scale-[0.98]">
-                  {editingProject ? 'Update Project' : 'Launch Project'}
-                </button>
-              </form>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl animate-in fade-in zoom-in border border-slate-100">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-black text-slate-800">{editingProject ? 'Modify Project' : 'New Project'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400"><X size={24} /></button>
             </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Icon</label>
+                <div className="grid grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto custom-scrollbar">
+                  {AVAILABLE_ICONS.map(icon => (
+                    <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${selectedIcon === icon ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white'}`}>
+                      <DynamicIcon name={icon} size={18} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Name</label>
+                <input autoFocus type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g., Construction Phase 1" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700" />
+              </div>
+              <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl active:scale-[0.98]">
+                {editingProject ? 'Update Project' : 'Create Project'}
+              </button>
+            </form>
           </div>
         </div>
       )}
