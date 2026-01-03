@@ -123,12 +123,16 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_DIRS = [
-    BASE_DIR / "frontend" / "dist" / "assets",
-]
+# STATICFILES_DIRS = [
+#     BASE_DIR / "frontend" / "dist" / "assets",
+# ]
 
-TEMPLATES[0]["DIRS"] = [
-    BASE_DIR / "frontend" / "dist",
+# TEMPLATES[0]["DIRS"] = [
+#     BASE_DIR / "frontend" / "dist",
+# ]
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
 ]
 
 # Default primary key field type
