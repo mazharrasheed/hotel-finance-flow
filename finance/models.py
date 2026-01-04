@@ -57,7 +57,7 @@ class Transaction(models.Model):
         ('expense', 'Expense'),
     )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Project, related_name='transactions', on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, related_name='transactions', on_delete=models.RESTRICT)
     date = models.DateField() # Matches your ISO date format
     type = models.CharField(max_length=10, choices=TYPES)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
