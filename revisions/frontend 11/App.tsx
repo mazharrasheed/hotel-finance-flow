@@ -15,6 +15,48 @@ import ReportsView from './components/ReportsView';
 import { Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { apiService } from './services/apiService';
+import {
+  Briefcase,
+  Target,
+  Layers,
+  PieChart,
+  Key,
+  Users,
+  Cpu,
+  Shield,
+  BarChart3,
+  FileText,
+  Award,
+  Zap,
+} from 'lucide-react';
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  Briefcase,
+  Target,
+  Layers,
+  PieChart,
+  Key,
+  Users,
+  Cpu,
+  Shield,
+  BarChart3,
+  FileText,
+  Award,
+  Zap,
+};
+
+export const DynamicIcon = ({
+  name,
+  size = 16,
+  ...props
+}: {
+  name: string;
+  size?: number;
+}) => {
+  const Icon = ICON_MAP[name] || Briefcase;
+  return <Icon size={size} {...props} />;
+};
+
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -287,9 +329,9 @@ const App: React.FC = () => {
   );
 };
 
-export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
-  const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
-  return <Icon size={size} className={className} />;
-};
+// export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
+//   const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
+//   return <Icon size={size} className={className} />;
+// };
 
 export default App;
