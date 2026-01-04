@@ -46,6 +46,7 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     color = models.CharField(max_length=50) # Stores hsl or hex
+    icon = models.CharField(max_length=50, default='Briefcase')
 
     def __str__(self):
         return self.name
