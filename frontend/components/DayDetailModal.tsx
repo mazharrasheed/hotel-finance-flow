@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Transaction, User } from '../types';
-import { X, Trash2, Check, Banknote, Plus, Edit2 } from 'lucide-react';
+import { X, Trash2, Check, Banknote, Plus, Edit2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DayDetailModalProps {
@@ -25,6 +25,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Transaction>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const startEditing = (t: Transaction) => {
     if (!user.permissions.canEditTransaction) return;
@@ -40,6 +41,13 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
     setEditingId(null);
   };
 
+  const handleDelete = () => {
+    if (confirmDeleteId) {
+      onDelete(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const income = transactions.filter(t => t.type === 'income');
   const expense = transactions.filter(t => t.type === 'expense');
 
@@ -48,7 +56,35 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 print:hidden">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100">
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100 relative">
+        
+        {/* Deletion Confirmation Overlay */}
+        {confirmDeleteId && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center p-6 bg-white/80 backdrop-blur-sm rounded-3xl animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-100 shadow-2xl rounded-[2rem] p-8 max-w-sm w-full text-center">
+              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 mb-2">Delete Record?</h3>
+              <p className="text-sm font-medium text-slate-500 mb-8">This action is permanent and will affect your project's balance.</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-4 rounded-xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
+                >
+                  Keep It
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className="flex-1 py-4 bg-rose-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all active:scale-95"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <header className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">{format(new Date(date), 'MMMM do, yyyy')}</h2>
@@ -112,7 +148,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                       setEditValues={setEditValues}
                       onStartEdit={() => startEditing(t)}
                       onUpdate={() => handleUpdate(t.id)}
-                      onDelete={() => onDelete(t.id)}
+                      onDelete={() => setConfirmDeleteId(t.id)}
                       onCancel={() => setEditingId(null)}
                       user={user}
                     />
@@ -146,7 +182,7 @@ const DayDetailModal: React.FC<DayDetailModalProps> = ({
                       setEditValues={setEditValues}
                       onStartEdit={() => startEditing(t)}
                       onUpdate={() => handleUpdate(t.id)}
-                      onDelete={() => onDelete(t.id)}
+                      onDelete={() => setConfirmDeleteId(t.id)}
                       onCancel={() => setEditingId(null)}
                       user={user}
                     />
