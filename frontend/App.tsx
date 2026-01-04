@@ -12,9 +12,9 @@ import ProjectHeader from './components/ProjectHeader';
 import UserManagement from './components/UserManagement';
 import ProfileSettings from './components/ProfileSettings';
 import ReportsView from './components/ReportsView';
-import { Loader2, ConciergeBell, Bed, Utensils, Key, Coffee } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-
+import { apiService } from './services/apiService';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -22,9 +22,9 @@ const App: React.FC = () => {
   const [view, setView] = useState<'dashboard' | 'users' | 'profile' | 'reports'>('dashboard');
   
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,29 +32,45 @@ const App: React.FC = () => {
   const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // Warning before closing the tab
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = ''; 
+    const initApp = async () => {
+      // Load user session
+      const savedActiveUser = localStorage.getItem('finance_active_user');
+      if (savedActiveUser) setUser(JSON.parse(savedActiveUser));
+
+      try {
+        // Attempt to load from Django API on PythonAnywhere
+        const [apiProjects, apiTransactions] = await Promise.all([
+          apiService.fetchProjects(),
+          apiService.fetchTransactions()
+        ]);
+        
+        if (apiProjects.length > 0) setProjects(apiProjects);
+        else {
+          const local = localStorage.getItem('finance_projects');
+          if (local) setProjects(JSON.parse(local));
+        }
+
+        if (apiTransactions.length > 0) setTransactions(apiTransactions);
+        else {
+          const local = localStorage.getItem('finance_transactions');
+          if (local) setTransactions(JSON.parse(local));
+        }
+      } catch (err) {
+        // Silent fallback to local storage
+        const localProjs = localStorage.getItem('finance_projects');
+        const localTrans = localStorage.getItem('finance_transactions');
+        if (localProjs) setProjects(JSON.parse(localProjs));
+        if (localTrans) setTransactions(JSON.parse(localTrans));
+      } finally {
+        setIsInitializing(false);
+      }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    initApp();
   }, []);
 
-  useEffect(() => {
-    const savedActiveUser = localStorage.getItem('finance_active_user');
-    const savedProjects = localStorage.getItem('finance_projects');
-    const savedTransactions = localStorage.getItem('finance_transactions');
-
-    if (savedActiveUser) setUser(JSON.parse(savedActiveUser));
-    if (savedProjects) setProjects(JSON.parse(savedProjects));
-    if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
-    
-    setIsInitializing(false);
-  }, []);
-
+  // Periodic backup to local storage as secondary safety
   useEffect(() => {
     if (!isInitializing) {
       localStorage.setItem('finance_projects', JSON.stringify(projects));
@@ -77,114 +93,92 @@ const App: React.FC = () => {
     return transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
   }, [transactions]);
 
-  const handleAddProject = (name: string, description: string, icon: string) => {
-    const newProject: Project = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      description,
-      createdAt: Date.now(),
-      color: `hsl(${Math.random() * 360}, 70%, 55%)`,
-      icon: icon || 'Briefcase',
-    };
-    // Prepend to array so new projects show at the top
-    setProjects(prev => [newProject, ...prev]);
-    setActiveProjectId(newProject.id);
-    setView('dashboard');
+  const handleAddProject = async (name: string, description: string, icon: string) => {
+    try {
+      const newProject = await apiService.createProject(name, description, icon);
+      setProjects(prev => [newProject, ...prev]);
+      setActiveProjectId(newProject.id);
+      setView('dashboard');
+    } catch (err) {
+      alert('Error creating project. Check API connection.');
+    }
   };
 
-  const handleUpdateProject = (id: string, name: string, description: string, icon: string) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, name, description, icon } : p));
+  const handleUpdateProject = async (id: string, name: string, description: string, icon: string) => {
+    try {
+      const updated = await apiService.updateProject(id, name, description, icon);
+      setProjects(prev => prev.map(p => p.id === id ? updated : p));
+    } catch (err) {
+      alert('Error updating project.');
+    }
   };
 
-  const handleDeleteProject = (id: string) => {
-    if (!confirm("Permanently remove this project archive?")) return;
-    setProjects(prev => prev.filter(p => p.id !== id));
-    setTransactions(prev => prev.filter(t => t.projectId !== id));
-    if (activeProjectId === id) setActiveProjectId(null);
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm("Permanently remove this project?")) return;
+    try {
+      await apiService.deleteProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+      setTransactions(prev => prev.filter(t => t.project !== id));
+      if (activeProjectId === id) setActiveProjectId(null);
+    } catch (err) {
+      alert('Error deleting project.');
+    }
   };
 
-  const handleAddTransaction = (data: Omit<Transaction, 'id' | 'projectId' | 'date'>) => {
+  const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project' | 'date'>) => {
     if (!activeProjectId || !selectedDate) return;
     
-    const newTransaction: Transaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      projectId: activeProjectId,
-      date: selectedDate,
-      ...data,
-    };
-    setTransactions(prev => [...prev, newTransaction]);
-    setIsModalOpen(false);
+    try {
+      const newTransaction = await apiService.createTransaction({
+        project: activeProjectId,
+        date: selectedDate,
+        ...data,
+      });
+      setTransactions(prev => [...prev, newTransaction]);
+      setIsModalOpen(false);
+    } catch (err) {
+      alert('Error saving transaction. Check console for details.');
+    }
   };
 
-  const handleUpdateTransaction = (id: string, updates: Partial<Transaction>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    try {
+      const updated = await apiService.updateTransaction(id, updates);
+      setTransactions(prev => prev.map(t => t.id === id ? updated : t));
+    } catch (err) {
+      alert('Error updating transaction.');
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await apiService.deleteTransaction(id);
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      alert('Error deleting transaction.');
+    }
   };
 
   const handleExportCSV = () => {
-    if (transactions.length === 0 && projects.length === 0) {
-      alert("No records found to export.");
-      return;
-    }
-
-    const transactionHeaders = ["Section", "Project", "Date", "Type", "Amount (PKR)", "Reference"];
-    const transactionRows = transactions.map(t => {
-      const project = projects.find(p => p.id === t.projectId);
-      return [
-        "LOG",
-        project ? project.name : "Archived Asset",
-        t.date,
-        t.type.toUpperCase(),
-        t.amount,
-        t.note || "General"
-      ];
+    if (transactions.length === 0 && projects.length === 0) return;
+    const headers = ["Project", "Date", "Type", "Amount", "Note"];
+    const rows = transactions.map(t => {
+      const p = projects.find(proj => proj.id === t.project);
+      return [p?.name || "Archived", t.date, t.type.toUpperCase(), t.amount, t.note];
     });
-
-    const projectSummaries = projects.map(p => {
-      const pTransactions = transactions.filter(t => t.projectId === p.id);
-      const income = pTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-      const expense = pTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-      return ["SUMMARY", p.name, "-", "BALANCE", income - expense, `In: ${income} | Out: ${expense}`];
-    });
-
-    const globalSummary = [
-      ["TOTALS", "OVERALL PORTFOLIO", "-", "NET BALANCE", globalBalance, "Full Backup Data"]
-    ];
-
-    const csvContent = [
-      transactionHeaders.join(","),
-      ...transactionRows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")),
-      "",
-      "--- PROJECT BALANCES ---",
-      "Type,Project Name,Date,Field,Balance/Amount,Details",
-      ...projectSummaries.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")),
-      "",
-      "--- GLOBAL PORTFOLIO BALANCE ---",
-      ...globalSummary.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const today = new Date().toISOString().split('T')[0];
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `FinanceFlow_Backup_${today}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finance_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
   };
 
   if (isInitializing) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-        <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-[10px]">Syncing Accounts...</p>
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     );
   }
@@ -193,17 +187,15 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden relative font-['Inter']">
-      {/* Background Icons */}
-      <div className="absolute top-20 right-40 text-indigo-600/5 pointer-events-none -rotate-12 print:hidden"><ConciergeBell size={180} /></div>
-      <div className="absolute bottom-20 left-40 text-indigo-600/5 pointer-events-none rotate-12 print:hidden"><Key size={140} /></div>
-      <div className="absolute top-1/2 left-10 text-indigo-600/5 pointer-events-none -translate-y-1/2 rotate-6 print:hidden"><Bed size={120} /></div>
-      <div className="absolute bottom-10 right-10 text-indigo-600/5 pointer-events-none -rotate-6 print:hidden"><Utensils size={100} /></div>
-      <div className="absolute top-10 left-1/4 text-indigo-600/5 pointer-events-none rotate-45 print:hidden"><Coffee size={80} /></div>
-
       <Sidebar 
         projects={projects} 
         activeProjectId={activeProjectId} 
-        onSelectProject={(id) => { setActiveProjectId(id); setIsSidebarOpen(false); setView('dashboard'); }} 
+        onSelectProject={(id) => { 
+          setActiveProjectId(id); 
+          setIsSidebarOpen(false); 
+          // Only switch view to dashboard if an actual project is selected
+          if (id) setView('dashboard');
+        }} 
         onAddProject={handleAddProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}
@@ -215,10 +207,10 @@ const App: React.FC = () => {
       />
       
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden print:hidden" onClick={() => setIsSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
       
-      <main className="flex-1 flex flex-col min-w-0 h-full relative z-10">
+      <main className="flex-1 flex flex-col min-w-0 h-full relative">
         <Navbar 
           onToggleSidebar={() => setIsSidebarOpen(true)}
           user={user}
@@ -236,16 +228,15 @@ const App: React.FC = () => {
           {view === 'dashboard' && (
             <div className="max-w-7xl mx-auto h-full">
               {activeProject ? (
-                <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="space-y-6">
                   <ProjectHeader 
                     project={activeProject} 
-                    transactions={transactions.filter(t => t.projectId === activeProject.id)} 
+                    transactions={transactions.filter(t => t.project === activeProject.id)} 
                   />
-
-                  <div className="bg-white/90 backdrop-blur-md rounded-[2rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden ring-1 ring-slate-200/50">
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <CalendarView 
-                      projectId={activeProjectId}
-                      transactions={transactions.filter(t => t.projectId === activeProjectId)}
+                      projectId={activeProjectId!}
+                      transactions={transactions.filter(t => t.project === activeProjectId)}
                       onAddTransaction={(type, date) => { setModalType(type); setSelectedDate(date); setIsModalOpen(true); }}
                       onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
                       onDeleteTransaction={handleDeleteTransaction}
@@ -261,7 +252,7 @@ const App: React.FC = () => {
                   projectCount={projects.length}
                   projects={projects}
                   transactions={transactions}
-                  onSelectProject={setActiveProjectId}
+                  onSelectProject={(id) => { setActiveProjectId(id); setView('dashboard'); }}
                 />
               )}
             </div>
@@ -281,7 +272,7 @@ const App: React.FC = () => {
       {isDayDetailOpen && selectedDate && (
         <DayDetailModal 
           date={selectedDate} 
-          transactions={transactions.filter(t => t.projectId === activeProjectId && t.date === selectedDate)} 
+          transactions={transactions.filter(t => t.project === activeProjectId && t.date === selectedDate)} 
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
@@ -299,7 +290,7 @@ const App: React.FC = () => {
 };
 
 export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
-  const Icon = (LucideIcons as any)[name] || LucideIcons.Hotel;
+  const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
   return <Icon size={size} className={className} />;
 };
 

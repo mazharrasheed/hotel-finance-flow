@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Project, User } from '../types';
 import { 
-  Plus, X, Trash2, Edit2, Hotel, LayoutDashboard,
+  X, Trash2, Edit2, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
   BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
-  ConciergeBell, Bed, Utensils, Coffee, Waves, Key, Sparkles, FolderPlus
+  Key, Sparkles, FolderPlus
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 
@@ -24,8 +24,7 @@ interface SidebarProps {
 }
 
 const AVAILABLE_ICONS = [
-  'Briefcase', 'Target', 'Layers', 'PieChart', 'Hotel', 'ConciergeBell', 
-  'Bed', 'Utensils', 'Coffee', 'Waves', 'Key', 'Users', 'Cpu', 'Shield',
+  'Briefcase', 'Target', 'Layers', 'PieChart', 'Key', 'Users', 'Cpu', 'Shield',
   'BarChart3', 'FileText', 'Award', 'Zap'
 ];
 
@@ -49,22 +48,23 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [selectedIcon, setSelectedIcon] = useState('Briefcase');
 
   const handleDashboardClick = () => {
-    onSetView('dashboard');
+    // Navigate to Project Hub (dashboard with no active project)
     onSelectProject(null);
+    onSetView('dashboard');
   };
 
   const handleManagementClick = (view: 'users' | 'profile' | 'reports') => {
-    onSetView(view);
+    // Clear project selection and set the management view
     onSelectProject(null);
+    onSetView(view);
   };
 
   const handleProjectClick = (id: string) => {
-    onSetView('dashboard');
     onSelectProject(id);
+    onSetView('dashboard');
   };
 
   const openAdd = () => {
-    if (!user.permissions.canCreateProject) return;
     setEditingProject(null);
     setNewName('');
     setNewDescription('');
@@ -74,7 +74,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const openEdit = (e: React.MouseEvent, p: Project) => {
     e.stopPropagation();
-    if (!user.permissions.canEditProject) return;
     setEditingProject(p);
     setNewName(p.name);
     setNewDescription(p.description || '');
@@ -96,18 +95,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={`
-      fixed lg:relative inset-y-0 left-0 w-72 bg-white/90 backdrop-blur-2xl border-r border-slate-200 flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out print:hidden
+      fixed lg:relative inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full z-40 transition-transform duration-300 ease-in-out
       ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
     `}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2 text-indigo-700 font-black text-xl cursor-pointer" onClick={handleDashboardClick}>
-            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
-              <Hotel size={20} strokeWidth={2.5} />
-            </div>
+          <div className="flex items-center gap-2 text-indigo-700 font-bold text-xl cursor-pointer" onClick={handleDashboardClick}>
+            <LayoutDashboard size={24} />
             FinanceFlow
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full lg:hidden text-slate-400">
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg lg:hidden text-slate-400">
             <X size={20} />
           </button>
         </div>
@@ -115,167 +112,127 @@ const Sidebar: React.FC<SidebarProps> = ({
         {user.permissions.canCreateProject && (
           <button 
             onClick={openAdd}
-            className="w-full flex items-center justify-center gap-2 py-4 px-4 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-indigo-100 active:scale-[0.97] group"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
           >
-            <FolderPlus size={18} className="group-hover:scale-110 transition-transform" />
-            New Project
+            <FolderPlus size={18} />
+            Add Project
           </button>
         )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-6">
         <div className="px-3 py-2">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Management</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">General</span>
         </div>
 
         <button
           onClick={handleDashboardClick}
-          className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-            activeView === 'dashboard' && activeProjectId === null
-              ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-              : 'text-slate-600 border-transparent hover:bg-slate-50'
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+            activeView === 'dashboard' && !activeProjectId ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-            activeView === 'dashboard' && activeProjectId === null ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
-          }`}>
-            <LayoutDashboard size={20} />
-          </div>
-          <span className="text-[13px] tracking-tight">Project Hub</span>
+          <LayoutDashboard size={20} className={activeView === 'dashboard' && !activeProjectId ? 'text-indigo-600' : 'text-slate-400'} />
+          <span className="text-sm">Project Hub</span>
         </button>
 
         <button
           onClick={() => handleManagementClick('reports')}
-          className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-            activeView === 'reports' 
-              ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-              : 'text-slate-600 border-transparent hover:bg-slate-50'
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+            activeView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-            activeView === 'reports' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
-          }`}>
-            <FileText size={20} />
-          </div>
-          <span className="text-[13px] tracking-tight">Ledger Reports</span>
+          <FileText size={20} className={activeView === 'reports' ? 'text-indigo-600' : 'text-slate-400'} />
+          <span className="text-sm">Ledger</span>
         </button>
 
-        <div className="px-3 pt-6 pb-2">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Projects</span>
+        <div className="px-3 pt-6 py-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Entities</span>
         </div>
         
         <div className="space-y-1">
-          {projects.length === 0 ? (
-            <div className="px-3 py-4 text-center">
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">No projects yet</p>
-            </div>
-          ) : (
-            projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => handleProjectClick(project.id)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer border ${
-                  activeProjectId === project.id && activeView === 'dashboard'
-                    ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-                    : 'text-slate-600 border-transparent hover:bg-slate-50'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 text-white`} style={{ backgroundColor: project.color }}>
-                  <DynamicIcon name={project.icon || 'Briefcase'} size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="block truncate text-[13px] tracking-tight">{project.name}</span>
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {user.permissions.canEditProject && (
-                    <button onClick={(e) => openEdit(e, project)} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 shadow-sm"><Edit2 size={13} /></button>
-                  )}
-                  {user.permissions.canDeleteProject && (
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 shadow-sm"><Trash2 size={13} /></button>
-                  )}
-                </div>
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              onClick={() => handleProjectClick(project.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group ${
+                activeProjectId === project.id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white shadow-sm`} style={{ backgroundColor: project.color }}>
+                <DynamicIcon name={project.icon || 'Briefcase'} size={16} />
               </div>
-            ))
-          )}
+              <span className="flex-1 truncate text-sm">{project.name}</span>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {user.permissions.canEditProject && (
+                  <button onClick={(e) => openEdit(e, project)} className="p-1 hover:bg-white rounded-md text-slate-400 hover:text-indigo-600"><Edit2 size={12} /></button>
+                )}
+                {user.permissions.canDeleteProject && (
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1 hover:bg-white rounded-md text-slate-400 hover:text-rose-600"><Trash2 size={12} /></button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="px-3 pt-6 pb-2 border-t border-slate-100 mt-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Settings</span>
+        <div className="px-3 pt-6 py-2 border-t border-slate-50 mt-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Settings</span>
         </div>
 
         {user.role === 'admin' && (
           <button
             onClick={() => handleManagementClick('users')}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-              activeView === 'users' 
-                ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-                : 'text-slate-600 border-transparent hover:bg-slate-50'
-          }`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+              activeView === 'users' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
+            }`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-              activeView === 'users' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
-            }`}>
-              <UserCheck size={20} />
-            </div>
-            <span className="text-[13px] tracking-tight">Access Control</span>
+            <UserCheck size={20} className={activeView === 'users' ? 'text-indigo-600' : 'text-slate-400'} />
+            <span className="text-sm">Personnel</span>
           </button>
         )}
 
         <button
           onClick={() => handleManagementClick('profile')}
-          className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group border ${
-            activeView === 'profile' 
-              ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold shadow-sm' 
-              : 'text-slate-600 border-transparent hover:bg-slate-50'
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+            activeView === 'profile' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-            activeView === 'profile' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'
-          }`}>
-            <Settings size={20} />
-          </div>
-          <span className="text-[13px] tracking-tight">Profile Prefs</span>
+          <Settings size={20} className={activeView === 'profile' ? 'text-indigo-600' : 'text-slate-400'} />
+          <span className="text-sm">Profile</span>
         </button>
       </nav>
 
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl animate-in fade-in zoom-in border border-slate-100 overflow-hidden relative">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50" />
-            <div className="relative">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                  <Sparkles size={24} className="text-indigo-600" />
-                  {editingProject ? 'Edit Entity' : 'New Project'}
-                </h3>
-                <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400"><X size={24} /></button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Identity Icon</label>
-                  <div className="grid grid-cols-6 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto custom-scrollbar">
-                    {AVAILABLE_ICONS.map(icon => (
-                      <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${selectedIcon === icon ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'text-slate-400 hover:bg-white'}`}>
-                        <DynamicIcon name={icon} size={18} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Project Name</label>
-                    <input autoFocus type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g., Downtown Site A" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Context / Description</label>
-                    <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="What is this project's purpose?" className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700 h-24 resize-none shadow-sm" />
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-100 active:scale-[0.98]">
-                  {editingProject ? 'Update Project' : 'Launch Project'}
-                </button>
-              </form>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in fade-in zoom-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-800">
+                {editingProject ? 'Edit Project' : 'New Project'}
+              </h3>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><X size={20} /></button>
             </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Category Icon</label>
+                <div className="grid grid-cols-6 gap-2 p-2 bg-slate-50 rounded-xl">
+                  {AVAILABLE_ICONS.map(icon => (
+                    <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`p-2 rounded-lg transition-all flex items-center justify-center ${selectedIcon === icon ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-white'}`}>
+                      <DynamicIcon name={icon} size={18} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Project Identity</label>
+                <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-indigo-500 outline-none font-bold text-slate-700" placeholder="Enter name..." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Description</label>
+                <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-indigo-500 outline-none h-24 resize-none" placeholder="Context for this project..." />
+              </div>
+              <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg active:scale-95 transition-all">
+                {editingProject ? 'Save Changes' : 'Launch Project'}
+              </button>
+            </form>
           </div>
         </div>
       )}

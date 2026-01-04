@@ -8,7 +8,8 @@ interface TransactionModalProps {
   type: TransactionType;
   date: string;
   onClose: () => void;
-  onSubmit: (data: Omit<Transaction, 'id' | 'projectId' | 'date'>) => void;
+  // Fix: changed 'projectId' to 'project' to match the Transaction interface
+  onSubmit: (data: Omit<Transaction, 'id' | 'project' | 'date'>) => void;
 }
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose, onSubmit }) => {

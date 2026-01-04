@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Hotel, Mail, Lock, Loader2, ArrowRight, AlertCircle, Info, ConciergeBell, Bed, Utensils, Key } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Mail, Lock, Loader2, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginProps {
@@ -8,9 +9,9 @@ interface LoginProps {
 
 const DEFAULT_ADMIN: User = {
   id: 'admin-001',
-  email: 'admin@hotel.com',
+  email: 'admin@finance.com',
   password: 'admin123',
-  name: 'Project Manager',
+  name: 'System Admin',
   role: 'admin',
   permissions: {
     canViewDashboard: true,
@@ -30,39 +31,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isDemoVisible, setIsDemoVisible] = useState(false);
-
-  // Initialize DB and Check Demo Status
-  useEffect(() => {
-    const hidden = localStorage.getItem('finance_demo_hidden');
-    const db = getOrInitializeDB();
-    
-    // Show demo credentials if it hasn't been hidden yet or if only the default admin exists
-    setIsDemoVisible(hidden !== 'true' || db.length <= 1);
-  }, []);
-
-  const getOrInitializeDB = (): User[] => {
-    const dbStr = localStorage.getItem('finance_users_db');
-    let db: User[] = [];
-    
-    try {
-      if (!dbStr || dbStr === '[]' || dbStr === '{}') {
-        db = [DEFAULT_ADMIN];
-        localStorage.setItem('finance_users_db', JSON.stringify(db));
-      } else {
-        db = JSON.parse(dbStr);
-        // Ensure admin is in DB
-        if (!db.find(u => u.email.toLowerCase() === DEFAULT_ADMIN.email.toLowerCase())) {
-          db.push(DEFAULT_ADMIN);
-          localStorage.setItem('finance_users_db', JSON.stringify(db));
-        }
-      }
-    } catch (e) {
-      db = [DEFAULT_ADMIN];
-      localStorage.setItem('finance_users_db', JSON.stringify(db));
-    }
-    return db;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,120 +39,74 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
-      const db = getOrInitializeDB();
-      
-      const cleanEmail = email.toLowerCase().trim();
-      const cleanPass = password.trim();
-      
-      const foundUser = db.find(u => 
-        u.email.toLowerCase().trim() === cleanEmail && 
-        u.password?.trim() === cleanPass
-      );
-      
-      if (foundUser) {
-        localStorage.setItem('finance_active_user', JSON.stringify(foundUser));
-        localStorage.setItem('finance_demo_hidden', 'true');
-        onLogin(foundUser);
+      if (email.toLowerCase() === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
+        localStorage.setItem('finance_active_user', JSON.stringify(DEFAULT_ADMIN));
+        onLogin(DEFAULT_ADMIN);
       } else {
-        setError('Invalid credentials. Please use the manager keys provided below.');
+        setError('Invalid credentials. Check admin email and password.');
       }
     } catch (err) {
-      setError('System sync failure. Please refresh the browser.');
+      setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 bg-slate-50 min-h-screen relative overflow-hidden">
-      <div className="absolute top-10 left-10 text-indigo-100 -rotate-12 animate-pulse"><ConciergeBell size={80} /></div>
-      <div className="absolute bottom-20 right-10 text-indigo-100 rotate-12 animate-bounce duration-1000"><Key size={60} /></div>
-      <div className="absolute top-1/2 right-20 text-indigo-100/50 -translate-y-1/2"><Bed size={120} /></div>
-      <div className="absolute bottom-10 left-1/4 text-indigo-100/50"><Utensils size={40} /></div>
-
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-slate-200 p-8 md:p-12 border border-slate-100 relative z-10 overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50" />
-        
-        <div className="text-center mb-10 relative">
-          <div className="inline-flex items-center justify-center p-4 bg-indigo-700 rounded-2xl text-white mb-6 shadow-xl shadow-indigo-100 transition-transform hover:scale-105 duration-300">
-            <Hotel size={32} strokeWidth={2.5} />
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-2xl text-white mb-4">
+            <LayoutDashboard size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">FinanceFlow</h1>
-          <p className="text-slate-400 mt-2 font-medium italic uppercase tracking-widest text-[10px]">Project Management Portal</p>
+          <h1 className="text-2xl font-bold text-slate-800">FinanceFlow</h1>
+          <p className="text-slate-400 text-sm mt-1">Project Management Portal</p>
         </div>
 
-        {isDemoVisible && (
-          <div className="mb-8 p-5 bg-indigo-50 rounded-[1.5rem] border border-indigo-100 flex flex-col gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-2 text-indigo-700">
-              <Info size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Initial Admin Access</span>
-            </div>
-            <div className="space-y-1 bg-white/50 p-3 rounded-xl border border-indigo-50">
-              <div className="flex justify-between items-center text-xs font-bold text-indigo-800">
-                <span className="opacity-60">Email:</span>
-                <span className="select-all">admin@hotel.com</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-bold text-indigo-800 mt-1">
-                <span className="opacity-60">Pass:</span>
-                <span className="select-all">admin123</span>
-              </div>
-            </div>
+        <div className="mb-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+          <p className="text-[10px] font-bold text-indigo-600 uppercase mb-2">Demo Access</p>
+          <div className="text-xs space-y-1 font-medium text-slate-600">
+            <p>Email: <span className="font-bold">admin@finance.com</span></p>
+            <p>Password: <span className="font-bold">admin123</span></p>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manager Email</label>
-            <div className="relative group">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                <Mail size={18} />
-              </span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Email</label>
+            <div className="relative mt-1">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="email" 
-                required 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="admin@hotel.com" 
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none transition-all text-slate-700 font-bold" 
+                type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium"
+                placeholder="admin@finance.com"
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Key</label>
-            <div className="relative group">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                <Lock size={18} />
-              </span>
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Password</label>
+            <div className="relative mt-1">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="password" 
-                required 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="••••••••" 
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none transition-all text-slate-700 font-bold" 
+                type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium"
+                placeholder="••••••••"
               />
             </div>
           </div>
 
           {error && (
-            <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold border border-rose-100 flex items-start gap-3 animate-shake">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <span>{error}</span>
+            <div className="flex items-center gap-2 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">
+              <AlertCircle size={14} />
+              {error}
             </div>
           )}
 
           <button 
-            disabled={isLoading} 
-            type="submit" 
-            className="w-full py-5 bg-indigo-700 hover:bg-indigo-800 disabled:bg-indigo-400 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+            disabled={isLoading} type="submit"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={24} /> : (
-              <>
-                Enter Dashboard
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Login'}
           </button>
         </form>
       </div>

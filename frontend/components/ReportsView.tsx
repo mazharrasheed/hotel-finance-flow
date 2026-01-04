@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Transaction, Project } from '../types';
 import { Printer, FileText, TrendingUp, TrendingDown, Hotel } from 'lucide-react';
@@ -118,7 +119,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
                 </tr>
               ) : (
                 sortedTransactions.map(t => {
-                  const project = projects.find(p => p.id === t.projectId);
+                  const project = projects.find(p => p.id === t.project);
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap">

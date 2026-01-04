@@ -41,7 +41,7 @@ export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
   id: string;
-  projectId: string;
+  project: string; // Matches Django ForeignKey field name
   date: string;
   type: TransactionType;
   amount: number;
