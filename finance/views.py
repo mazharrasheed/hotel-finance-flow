@@ -28,6 +28,7 @@ from django.utils.crypto import get_random_string
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import ProtectedError
 import json
 
 
@@ -247,6 +248,15 @@ def current_user(request):
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Cannot delete project with existing transactions."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
