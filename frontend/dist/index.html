@@ -31,25 +31,24 @@
         background: #cbd5e1;
       }
 
-      @media print {
-        @page {
-          margin: 5mm;
-          size: A4;
-        }
-        
-        html, body, #root, [class*="h-screen"], main, .flex, .flex-1 {
-          height: auto !important;
-          min-height: 0 !important;
-          max-height: none !important;
-          overflow: visible !important;
-          display: block !important;
-          position: static !important;
-          background: white !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
+     @media print {
+  @page {
+    margin: 5mm; /* Browser may adjust slightly */
+    size: A4;
+  }
 
+  html, body, #root, main, div, section {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: 100% !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    display: block !important;
+    background: white !important;
+  }
         .overflow-y-auto {
           padding: 0 !important;
           margin: 0 !important;
@@ -85,7 +84,7 @@
       }
     }
     </script>
-  <script type="module" crossorigin src="/assets/index-B3z_br6E.js"></script>
+  <script type="module" crossorigin src="/assets/index-DzZqTDLU.js"></script>
 </head>
   <body>
     <div id="root"></div>

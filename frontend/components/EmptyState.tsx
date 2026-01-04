@@ -166,7 +166,12 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                     {/* Vertical Column Area */}
                     <div className="flex-1 flex items-end justify-center gap-4 px-2">
                       {/* Income Column */}
-                      <div className="flex-1 max-w-[32px] h-full flex items-end">
+                      <div
+                        className="flex items-end h-full"
+                        style={{
+                          width: `${Math.max(32, String(stat.income).length * 8)}px`
+                        }}
+                      >
                         <div
                           className="relative w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg transition-all duration-1000 ease-out shadow-[0_-4px_10px_rgba(16,185,129,0.15)] group-hover:shadow-[0_-6px_15px_rgba(16,185,129,0.3)]"
                           style={{ height: `${Math.max((stat.income / chartMax) * 100, 2)}%` }}
@@ -178,7 +183,12 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                       </div>
 
                       {/* Expense Column */}
-                      <div className="flex-1 max-w-[32px] h-full flex items-end">
+                      <div
+                        className="flex items-end h-full"
+                        style={{
+                          width: `${Math.max(32, String(stat.expense).length * 8)}px`
+                        }}
+                      >
                         <div
                           className="relative w-full bg-gradient-to-t from-rose-500 to-rose-400 rounded-t-lg transition-all duration-1000 ease-out shadow-[0_-4px_10px_rgba(244,63,94,0.15)] group-hover:shadow-[0_-6px_15px_rgba(244,63,94,0.3)]"
                           style={{ height: `${Math.max((stat.expense / chartMax) * 100, 2)}%` }}
@@ -188,6 +198,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                           </div>
                         </div>
                       </div>
+
                     </div>
 
                     {/* Icon & Net Badge */}
