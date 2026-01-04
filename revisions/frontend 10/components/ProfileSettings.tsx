@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, AppTheme } from '../types';
-import { Shield, Lock, Check, Loader2, UserCheck, Camera, Trash2, MapPin, Phone, Globe, Info, Edit3, Image as ImageIcon, ChevronDown, ChevronUp, Palette } from 'lucide-react';
+import { User } from '../types';
+import { Shield, Lock, Check, Loader2, UserCheck, Mail, Camera, Trash2, MapPin, Phone, Globe, Info, Edit3, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProfileSettingsProps {
   activeUser: User;
@@ -9,11 +9,13 @@ interface ProfileSettingsProps {
 }
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateUser }) => {
+  // Password state
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
+  // Personal Info state
   const [profileData, setProfileData] = useState({
     name: activeUser.name || '',
     bio: activeUser.bio || '',
@@ -28,6 +30,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // Synchronize local state if user props change
   useEffect(() => {
     setProfileData({
       name: activeUser.name || '',
@@ -50,7 +53,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
       reader.onloadend = () => {
         const base64String = reader.result as string;
         updateUserProfile({ [type === 'avatar' ? 'avatar' : 'coverImage']: base64String });
-        setMessage({ type: 'success', text: `${type === 'avatar' ? 'Profile picture' : 'Cover image'} updated!` });
+        setMessage({ type: 'success', text: `${type === 'avatar' ? 'Profile picture' : 'Cover image'} synchronized!` });
         e.target.value = '';
       };
       reader.readAsDataURL(file);
@@ -60,6 +63,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
   const removeImage = (type: 'avatar' | 'cover') => {
     updateUserProfile({ [type === 'avatar' ? 'avatar' : 'coverImage']: undefined });
     setMessage({ type: 'success', text: `${type === 'avatar' ? 'Profile picture' : 'Cover image'} removed.` });
+    if (type === 'avatar' && avatarInputRef.current) avatarInputRef.current.value = '';
+    if (type === 'cover' && coverInputRef.current) coverInputRef.current.value = '';
   };
 
   const updateUserProfile = (updates: Partial<User>) => {
@@ -83,7 +88,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       updateUserProfile(profileData);
-      setMessage({ type: 'success', text: 'Information updated!' });
+      setMessage({ type: 'success', text: 'Personal information updated!' });
     } catch (err) {
       setMessage({ type: 'error', text: 'Update failed.' });
     } finally {
@@ -110,7 +115,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
       }
 
       updateUserProfile({ password: newPassword });
-      setMessage({ type: 'success', text: 'Password updated!' });
+      
+      setMessage({ type: 'success', text: 'Password updated successfully!' });
       setOldPassword(''); setNewPassword(''); setConfirmPassword('');
       setIsChangingPassword(false);
     } catch (err: any) {
@@ -119,18 +125,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
       setIsUpdating(false);
     }
   };
-
-  const handleThemeChange = (theme: AppTheme) => {
-    updateUserProfile({ theme });
-    setMessage({ type: 'success', text: `App theme changed to ${theme}!` });
-  };
-
-  const themes: { id: AppTheme, name: string, color: string }[] = [
-    { id: 'indigo', name: 'Professional Indigo', color: 'bg-indigo-600' },
-    { id: 'emerald', name: 'Financial Emerald', color: 'bg-emerald-600' },
-    { id: 'rose', name: 'Dynamic Rose', color: 'bg-rose-600' },
-    { id: 'amber', name: 'Hospitality Amber', color: 'bg-amber-600' }
-  ];
 
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 font-['Inter'] pb-20">
@@ -184,40 +178,33 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10 md:mt-16">
         <div className="space-y-8">
-          {/* Theme Selection */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
-            <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
-               <Palette size={16} className="text-[var(--primary)]" /> System Themes
-            </h3>
-            <div className="space-y-3">
-              {themes.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => handleThemeChange(t.id)}
-                  className={`w-full flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
-                    activeUser.theme === t.id ? 'border-[var(--primary)] bg-slate-50' : 'border-transparent bg-slate-50/50 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg ${t.color}`} />
-                    <span className={`text-xs font-black ${activeUser.theme === t.id ? 'text-slate-800' : 'text-slate-500'}`}>{t.name}</span>
-                  </div>
-                  {activeUser.theme === t.id && <Check size={16} className="text-[var(--primary)]" />}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
                <Info size={16} className="text-indigo-600" /> About Me
             </h3>
             <p className="text-sm text-slate-500 font-medium leading-relaxed italic">
-              {activeUser.bio || "No bio added yet."}
+              {activeUser.bio || "No bio added yet. Share your professional story!"}
             </p>
+            <div className="mt-6 space-y-4">
+              {activeUser.location && (
+                <div className="flex items-center gap-3 text-slate-500 text-sm">
+                  <MapPin size={16} className="text-slate-300" /> <span>{activeUser.location}</span>
+                </div>
+              )}
+              {activeUser.phoneNumber && (
+                <div className="flex items-center gap-3 text-slate-500 text-sm">
+                  <Phone size={16} className="text-slate-300" /> <span>{activeUser.phoneNumber}</span>
+                </div>
+              )}
+              {activeUser.website && (
+                <div className="flex items-center gap-3 text-slate-500 text-sm">
+                  <Globe size={16} className="text-slate-300" /> <a href={activeUser.website} target="_blank" className="text-indigo-600 hover:underline">{activeUser.website.replace(/(^\w+:|^)\/\//, '')}</a>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="bg-[var(--primary)] p-8 rounded-[2.5rem] text-white shadow-xl transition-all duration-300">
+          <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-white/20 rounded-2xl w-fit"><Shield size={24} /></div>
               <button 
@@ -225,17 +212,30 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
                 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all"
               >
                 {isChangingPassword ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                {isChangingPassword ? 'Cancel' : 'Security'}
+                {isChangingPassword ? 'Cancel' : 'Change Password'}
               </button>
             </div>
             <h4 className="font-black text-lg mb-2">Security Hub</h4>
+            <p className="text-indigo-100 text-xs font-medium leading-relaxed mb-6">
+              Manage your login password and access protocols. Keep your password updated regularly.
+            </p>
+            
             {isChangingPassword && (
               <form onSubmit={handlePasswordChange} className="space-y-4 animate-in slide-in-from-top-4 duration-300">
-                 <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="Current Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm New" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
-                 <button disabled={isUpdating} type="submit" className="w-full py-3 bg-white text-[var(--primary)] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all">
-                    Update Password
+                 <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">Current Password</label>
+                   <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="Current Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">New Password</label>
+                   <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New Password" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-indigo-200 ml-1">Confirm New Password</label>
+                   <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm New" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none placeholder:text-indigo-200/50 text-sm font-bold" />
+                 </div>
+                 <button disabled={isUpdating} type="submit" className="w-full py-3 bg-white text-indigo-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
+                    {isUpdating ? <Loader2 className="animate-spin" size={14} /> : 'Update Password'}
                  </button>
               </form>
             )}
@@ -255,17 +255,28 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity</label>
-                    <input required value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" />
+                    <input required value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Zone / Area</label>
-                    <input value={profileData.location} onChange={e => setProfileData({...profileData, location: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" />
+                    <input value={profileData.location} onChange={e => setProfileData({...profileData, location: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="Punjab, Pakistan" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Bio</label>
-                  <textarea value={profileData.bio} onChange={e => setProfileData({...profileData, bio: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all h-32 resize-none" />
+                  <textarea value={profileData.bio} onChange={e => setProfileData({...profileData, bio: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all h-32 resize-none" placeholder="Share your story..." />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                    <input value={profileData.phoneNumber} onChange={e => setProfileData({...profileData, phoneNumber: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="+92 3XX XXXXXXX" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Official Website</label>
+                    <input value={profileData.website} onChange={e => setProfileData({...profileData, website: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="https://example.com" />
+                  </div>
                 </div>
 
                 {message && (
@@ -275,8 +286,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
                   </div>
                 )}
 
-                <button disabled={isUpdating} type="submit" className="w-full md:w-auto px-12 py-5 bg-[var(--primary)] hover:opacity-90 disabled:bg-slate-300 text-white rounded-2xl font-black text-base shadow-xl active:scale-[0.98] transition-all">
-                  Save Changes
+                <button disabled={isUpdating} type="submit" className="w-full md:w-auto px-12 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-2xl font-black text-base shadow-xl shadow-indigo-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  {isUpdating ? <Loader2 className="animate-spin" size={20} /> : 'Save Profile Changes'}
                 </button>
               </form>
            </div>

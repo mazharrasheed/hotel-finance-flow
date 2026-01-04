@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Project, Transaction, AppTheme } from './types';
+import { User, Project, Transaction } from './types';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import CalendarView from './components/CalendarView';
@@ -32,14 +32,14 @@ const App: React.FC = () => {
   const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const theme: AppTheme = user?.theme || 'indigo';
-
   useEffect(() => {
     const initApp = async () => {
+      // Load user session
       const savedActiveUser = localStorage.getItem('finance_active_user');
       if (savedActiveUser) setUser(JSON.parse(savedActiveUser));
 
       try {
+        // Attempt to load from Django API on PythonAnywhere
         const [apiProjects, apiTransactions] = await Promise.all([
           apiService.fetchProjects(),
           apiService.fetchTransactions()
@@ -57,6 +57,7 @@ const App: React.FC = () => {
           if (local) setTransactions(JSON.parse(local));
         }
       } catch (err) {
+        // Silent fallback to local storage
         const localProjs = localStorage.getItem('finance_projects');
         const localTrans = localStorage.getItem('finance_transactions');
         if (localProjs) setProjects(JSON.parse(localProjs));
@@ -69,6 +70,7 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
+  // Periodic backup to local storage as secondary safety
   useEffect(() => {
     if (!isInitializing) {
       localStorage.setItem('finance_projects', JSON.stringify(projects));
@@ -135,7 +137,7 @@ const App: React.FC = () => {
       setTransactions(prev => [...prev, newTransaction]);
       setIsModalOpen(false);
     } catch (err) {
-      alert('Error saving transaction.');
+      alert('Error saving transaction. Check console for details.');
     }
   };
 
@@ -184,13 +186,14 @@ const App: React.FC = () => {
   if (!user) return <Login onLogin={setUser} />;
 
   return (
-    <div className={`flex h-screen bg-slate-50 text-slate-900 overflow-hidden relative font-['Inter'] theme-${theme}`}>
+    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden relative font-['Inter']">
       <Sidebar 
         projects={projects} 
         activeProjectId={activeProjectId} 
         onSelectProject={(id) => { 
           setActiveProjectId(id); 
           setIsSidebarOpen(false); 
+          // Only switch view to dashboard if an actual project is selected
           if (id) setView('dashboard');
         }} 
         onAddProject={handleAddProject}
@@ -250,7 +253,6 @@ const App: React.FC = () => {
                   projects={projects}
                   transactions={transactions}
                   onSelectProject={(id) => { setActiveProjectId(id); setView('dashboard'); }}
-                  theme={theme}
                 />
               )}
             </div>

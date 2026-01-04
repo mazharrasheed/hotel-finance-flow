@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, Loader2, LayoutDashboard, AlertCircle, Hotel, Building2 } from 'lucide-react';
+import { Mail, Lock, Loader2, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginProps {
@@ -53,16 +53,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative overflow-hidden">
-      {/* Reasonable Login Watermarks */}
-      <div className="absolute -bottom-20 -left-20 opacity-[0.05] text-indigo-900 pointer-events-none -rotate-12">
-        <Hotel size={500} strokeWidth={1} />
-      </div>
-      <div className="absolute -top-20 -right-20 opacity-[0.03] text-indigo-900 pointer-events-none rotate-12">
-        <Building2 size={450} strokeWidth={1} />
-      </div>
-
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-slate-100 relative z-10">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-2xl text-white mb-4">
             <LayoutDashboard size={32} />

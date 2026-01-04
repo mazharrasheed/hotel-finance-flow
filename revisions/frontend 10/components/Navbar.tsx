@@ -9,6 +9,7 @@ interface NavbarProps {
   onLogout: () => void;
   onExport: () => void;
   globalBalance: number;
+  // Updated onSetView to include 'reports' as a valid view option
   onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
 }
 
@@ -40,7 +41,7 @@ const Navbar: React.FC<NavbarProps> = ({
         {user && canBackup && (
           <button 
             onClick={onExport}
-            className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 hover:bg-[var(--primary-light)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all text-slate-500 group"
+            className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 hover:bg-indigo-50 hover:border-indigo-100 hover:text-indigo-600 transition-all text-slate-500 group"
             title="Backup all data to CSV"
           >
             <DownloadCloud size={16} className="group-hover:scale-110 transition-transform" />
@@ -49,8 +50,8 @@ const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {user && (
-          <div className="flex items-center gap-2 bg-[var(--primary-light)] px-4 py-1.5 rounded-2xl border border-[var(--primary)]/10">
-            <Globe size={16} className="text-[var(--primary)]" />
+          <div className="flex items-center gap-2 bg-indigo-50/50 px-4 py-1.5 rounded-2xl border border-indigo-100">
+            <Globe size={16} className="text-indigo-500" />
             <div className="flex flex-col">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Net Worth</span>
               <span className={`text-sm font-black leading-tight ${globalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -66,13 +67,13 @@ const Navbar: React.FC<NavbarProps> = ({
               className="hidden md:block text-right cursor-pointer group"
               onClick={() => onSetView('profile')}
             >
-              <p className="text-xs font-black text-slate-800 leading-tight group-hover:text-[var(--primary)] transition-colors">{user.name}</p>
+              <p className="text-xs font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">{user.name}</p>
               <p className="text-[10px] font-bold text-slate-400 leading-tight">View Profile</p>
             </div>
             
             <div 
               onClick={() => onSetView('profile')}
-              className="w-9 h-9 bg-[var(--primary)] text-white rounded-full flex items-center justify-center shadow-sm overflow-hidden shrink-0 cursor-pointer hover:ring-2 ring-[var(--primary)]/20 transition-all active:scale-95"
+              className="w-9 h-9 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm overflow-hidden shrink-0 cursor-pointer hover:ring-2 ring-indigo-200 transition-all active:scale-95"
             >
               {user.avatar ? (
                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />

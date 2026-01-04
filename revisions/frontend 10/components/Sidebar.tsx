@@ -5,7 +5,7 @@ import {
   X, Trash2, Edit2, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
   BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
-  Key, Sparkles, FolderPlus, Hotel
+  Key, Sparkles, FolderPlus
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 
@@ -48,11 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [selectedIcon, setSelectedIcon] = useState('Briefcase');
 
   const handleDashboardClick = () => {
+    // Navigate to Project Hub (dashboard with no active project)
     onSelectProject(null);
     onSetView('dashboard');
   };
 
   const handleManagementClick = (view: 'users' | 'profile' | 'reports') => {
+    // Clear project selection and set the management view
     onSelectProject(null);
     onSetView(view);
   };
@@ -93,24 +95,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={`
-      fixed lg:relative inset-y-0 left-0 w-72 border-r border-slate-200 flex flex-col h-full z-40 transition-transform duration-300 ease-in-out overflow-hidden
-      bg-white
+      fixed lg:relative inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full z-40 transition-transform duration-300 ease-in-out
       ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
     `}>
-      {/* Reasonable Background Layer 1: Theme Tint Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-[var(--primary-light)]/20 to-slate-50 opacity-80 pointer-events-none" />
-      
-      {/* Reasonable Background Layer 2: Subtle Dot Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `radial-gradient(var(--primary) 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
-
-      {/* Reasonable Background Layer 3: Large Thematic Watermark */}
-      <div className="absolute -bottom-16 -left-16 text-[var(--primary)] pointer-events-none opacity-[0.04] z-0 rotate-12">
-        <Hotel size={320} strokeWidth={1} />
-      </div>
-
-      <div className="p-6 relative z-10">
+      <div className="p-6">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-xl cursor-pointer" onClick={handleDashboardClick}>
+          <div className="flex items-center gap-2 text-indigo-700 font-bold text-xl cursor-pointer" onClick={handleDashboardClick}>
             <LayoutDashboard size={24} />
             FinanceFlow
           </div>
@@ -122,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {user.permissions.canCreateProject && (
           <button 
             onClick={openAdd}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--primary)] hover:opacity-90 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
           >
             <FolderPlus size={18} />
             Add Project
@@ -130,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-6 relative z-10">
+      <nav className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-6">
         <div className="px-3 py-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">General</span>
         </div>
@@ -138,20 +128,20 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={handleDashboardClick}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-            activeView === 'dashboard' && !activeProjectId ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold shadow-sm' : 'text-slate-600 hover:bg-white/60'
+            activeView === 'dashboard' && !activeProjectId ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <LayoutDashboard size={20} className={activeView === 'dashboard' && !activeProjectId ? 'text-[var(--primary)]' : 'text-slate-400'} />
+          <LayoutDashboard size={20} className={activeView === 'dashboard' && !activeProjectId ? 'text-indigo-600' : 'text-slate-400'} />
           <span className="text-sm">Project Hub</span>
         </button>
 
         <button
           onClick={() => handleManagementClick('reports')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-            activeView === 'reports' ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold shadow-sm' : 'text-slate-600 hover:bg-white/60'
+            activeView === 'reports' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <FileText size={20} className={activeView === 'reports' ? 'text-[var(--primary)]' : 'text-slate-400'} />
+          <FileText size={20} className={activeView === 'reports' ? 'text-indigo-600' : 'text-slate-400'} />
           <span className="text-sm">Ledger</span>
         </button>
 
@@ -165,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={project.id}
               onClick={() => handleProjectClick(project.id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group ${
-                activeProjectId === project.id ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold shadow-sm' : 'text-slate-600 hover:bg-white/60'
+                activeProjectId === project.id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white shadow-sm`} style={{ backgroundColor: project.color }}>
@@ -174,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <span className="flex-1 truncate text-sm">{project.name}</span>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {user.permissions.canEditProject && (
-                  <button onClick={(e) => openEdit(e, project)} className="p-1 hover:bg-white rounded-md text-slate-400 hover:text-[var(--primary)]"><Edit2 size={12} /></button>
+                  <button onClick={(e) => openEdit(e, project)} className="p-1 hover:bg-white rounded-md text-slate-400 hover:text-indigo-600"><Edit2 size={12} /></button>
                 )}
                 {user.permissions.canDeleteProject && (
                   <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1 hover:bg-white rounded-md text-slate-400 hover:text-rose-600"><Trash2 size={12} /></button>
@@ -184,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
 
-        <div className="px-3 pt-6 py-2 border-t border-slate-100 mt-4">
+        <div className="px-3 pt-6 py-2 border-t border-slate-50 mt-4">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Settings</span>
         </div>
 
@@ -192,10 +182,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => handleManagementClick('users')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-              activeView === 'users' ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold shadow-sm' : 'text-slate-600 hover:bg-white/60'
+              activeView === 'users' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <UserCheck size={20} className={activeView === 'users' ? 'text-[var(--primary)]' : 'text-slate-400'} />
+            <UserCheck size={20} className={activeView === 'users' ? 'text-indigo-600' : 'text-slate-400'} />
             <span className="text-sm">Personnel</span>
           </button>
         )}
@@ -203,10 +193,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => handleManagementClick('profile')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-            activeView === 'profile' ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold shadow-sm' : 'text-slate-600 hover:bg-white/60'
+            activeView === 'profile' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Settings size={20} className={activeView === 'profile' ? 'text-[var(--primary)]' : 'text-slate-400'} />
+          <Settings size={20} className={activeView === 'profile' ? 'text-indigo-600' : 'text-slate-400'} />
           <span className="text-sm">Profile</span>
         </button>
       </nav>
@@ -225,7 +215,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Category Icon</label>
                 <div className="grid grid-cols-6 gap-2 p-2 bg-slate-50 rounded-xl">
                   {AVAILABLE_ICONS.map(icon => (
-                    <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`p-2 rounded-lg transition-all flex items-center justify-center ${selectedIcon === icon ? 'bg-[var(--primary)] text-white' : 'text-slate-400 hover:bg-white'}`}>
+                    <button key={icon} type="button" onClick={() => setSelectedIcon(icon)} className={`p-2 rounded-lg transition-all flex items-center justify-center ${selectedIcon === icon ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-white'}`}>
                       <DynamicIcon name={icon} size={18} />
                     </button>
                   ))}
@@ -233,13 +223,13 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Project Identity</label>
-                <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-[var(--primary)] outline-none font-bold text-slate-700" placeholder="Enter name..." />
+                <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-indigo-500 outline-none font-bold text-slate-700" placeholder="Enter name..." />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Description</label>
-                <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-[var(--primary)] outline-none h-24 resize-none" placeholder="Context for this project..." />
+                <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 ring-indigo-500 outline-none h-24 resize-none" placeholder="Context for this project..." />
               </div>
-              <button type="submit" className="w-full py-4 bg-[var(--primary)] hover:opacity-90 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg active:scale-95 transition-all">
+              <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg active:scale-95 transition-all">
                 {editingProject ? 'Save Changes' : 'Launch Project'}
               </button>
             </form>

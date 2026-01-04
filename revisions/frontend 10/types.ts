@@ -12,7 +12,6 @@ export interface Permissions {
 }
 
 export type UserRole = 'admin' | 'user';
-export type AppTheme = 'indigo' | 'emerald' | 'rose' | 'amber';
 
 export interface User {
   id: string;
@@ -27,7 +26,6 @@ export interface User {
   location?: string;
   phoneNumber?: string;
   website?: string;
-  theme?: AppTheme;
 }
 
 export interface Project {
@@ -43,7 +41,7 @@ export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
   id: string;
-  project: string; 
+  project: string; // Matches Django ForeignKey field name
   date: string;
   type: TransactionType;
   amount: number;
