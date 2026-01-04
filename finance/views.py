@@ -5,7 +5,7 @@ from django.shortcuts import render
 
 from .models import Project,Transaction
 from .serializers import ProjectSerializer,UserSignupSerializer,TransactionSerializer,UserSerializer
-
+from rest_framework.viewsets import ModelViewSet
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -245,7 +245,7 @@ def current_user(request):
     })
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProjectViewSet(ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
@@ -254,7 +254,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {"detail": "Cannot delete project with existing transactions."},
+                {
+                    "code": "PROJECT_HAS_TRANSACTIONS",
+                    "detail": "This project cannot be deleted because it has existing transactions."
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 

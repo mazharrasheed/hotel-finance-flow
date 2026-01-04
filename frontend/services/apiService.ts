@@ -82,6 +82,7 @@ fetchProjects: async (): Promise<Project[]> => {
     if (!res.ok) throw new Error('Failed to delete project');
   },
 
+  
   // Transaction endpoints
 
   // Fetch all transactions

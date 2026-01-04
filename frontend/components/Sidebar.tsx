@@ -23,6 +23,7 @@ interface SidebarProps {
   onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
 }
 
+
 const AVAILABLE_ICONS = [
   'Briefcase', 'Target', 'Layers', 'PieChart', 'Key', 'Users', 'Cpu', 'Shield',
   'BarChart3', 'FileText', 'Award', 'Zap'
@@ -41,6 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onSetView
 }) => {
+
+  
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [newName, setNewName] = useState('');
