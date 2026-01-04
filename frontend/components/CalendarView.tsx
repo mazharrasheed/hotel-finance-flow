@@ -154,7 +154,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </div>
 
-          {user.permissions.canViewReports && (
+          {/* {user.permissions.canViewReports && (
             <button 
               onClick={generateInsight}
               disabled={isLoadingInsight || transactions.length === 0}
@@ -163,7 +163,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <BarChart4 size={16} className={isLoadingInsight ? 'animate-pulse' : ''} />
               {isLoadingInsight ? 'Processing...' : 'Budget Analysis'}
             </button>
-          )}
+          )} */}
         </div>
       </div>
 
