@@ -12,7 +12,6 @@ interface AuthContextType {
   logout: () => void;
   hasPerm: (perm: string, appLabel?: string) => boolean;
   refreshUser: () => Promise<void>;
-  updateUser: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,16 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    // Populate convenience properties
+    // Populate convenience properties used by Navbar and CalendarView
     perms.canTakeBackup = !!(perms.can_backup || perms['finance.can_backup'] || perms.is_superuser);
-    perms.canAddTransaction = !!(perms.add_transaction || perms['finance.add_transaction'] || perms.is_superuser);
-    perms.canViewReports = !!(perms.view_reports || perms['finance.view_reports'] || perms.view_ledger || perms['finance.view_ledger'] || perms.is_superuser);
-    perms.canEditTransaction = !!(perms.change_transaction || perms['finance.change_transaction'] || perms.is_superuser);
-    perms.canDeleteTransaction = !!(perms.delete_transaction || perms['finance.delete_transaction'] || perms.is_superuser);
-    
-    // View Gating
-    perms.canViewProjects = !!(perms.view_project || perms['finance.view_project'] || perms.view_dashboard || perms['finance.view_dashboard'] || perms.is_superuser);
-    perms.canViewTransactions = !!(perms.view_transaction || perms['finance.view_transaction'] || perms.view_dashboard || perms['finance.view_dashboard'] || perms.is_superuser);
+    perms.canAddTransaction = !!(perms.add_transaction || perms['finance.add_transaction']);
+    perms.canViewReports = !!(perms.view_reports || perms['finance.view_reports'] || perms.view_ledger || perms['finance.view_ledger']);
+    perms.canEditTransaction = !!(perms.change_transaction || perms['finance.change_transaction']);
+    perms.canDeleteTransaction = !!(perms.delete_transaction || perms['finance.delete_transaction']);
 
     return perms;
   };
@@ -143,12 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) await fetchUserData(token);
   };
 
-  const updateUser = (updatedUser: User) => {
-    setUser(updatedUser);
-  };
-
   return (
-    <AuthContext.Provider value={{ user, token, permissions, isLoading, login, logout, hasPerm, refreshUser, updateUser }}>
+    <AuthContext.Provider value={{ user, token, permissions, isLoading, login, logout, hasPerm, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

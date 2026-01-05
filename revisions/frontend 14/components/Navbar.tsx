@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { User, AppTheme } from '../types';
-import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud, PlusCircle, Palette } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { User } from '../types';
+import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -23,17 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({
   onSetView,
   onGeneralEntry
 }) => {
-  const { updateUser } = useAuth();
   const canBackup = user?.role === 'admin' || user?.permissions.canTakeBackup;
-
-  const cycleTheme = () => {
-    if (!user) return;
-    const themes: AppTheme[] = ['slate', 'indigo', 'emerald', 'rose', 'amber'];
-    const currentTheme = user.theme || 'slate';
-    const currentIndex = themes.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    updateUser({ ...user, theme: themes[nextIndex] });
-  };
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center px-4 md:px-8 shrink-0 overflow-hidden shadow-sm z-20">
@@ -48,13 +37,13 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="flex-1 flex items-center gap-6">
         <div className="flex flex-col">
           <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight leading-none">Overview</h2>
-          <p className="text-[9px] font-black text-[var(--primary)] uppercase tracking-[0.2em] hidden sm:block mt-1 leading-none opacity-60">Ali & Company</p>
+          <p className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] hidden sm:block mt-1 leading-none opacity-60">Ali & Company</p>
         </div>
         
         {user?.permissions.canAddTransaction && (
           <button 
             onClick={onGeneralEntry}
-            className="flex items-center gap-2 bg-[var(--primary)] text-white px-4 py-1.5 rounded-xl hover:opacity-90 transition-all shadow-md active:scale-95 group"
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 group"
           >
             <PlusCircle size={16} className="group-hover:rotate-90 transition-transform" />
             <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">General Entry</span>
@@ -63,14 +52,6 @@ const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4 ml-4">
-        <button 
-          onClick={cycleTheme}
-          className="p-2 text-slate-400 hover:text-[var(--primary)] hover:bg-[var(--primary-light)] rounded-xl transition-all"
-          title="Cycle Theme"
-        >
-          <Palette size={20} />
-        </button>
-
         {user && canBackup && (
           <button 
             onClick={onExport}

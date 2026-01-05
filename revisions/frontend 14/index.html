@@ -29,9 +29,6 @@
       .theme-amber { 
         --primary: #d97706; --primary-hover: #b45309; --primary-light: #fffbeb; --secondary: #f59e0b; 
       }
-      .theme-slate { 
-        --primary: #0f172a; --primary-hover: #1e293b; --primary-light: #f1f5f9; --secondary: #475569; 
-      }
 
       body {
         font-family: 'Inter', sans-serif;
@@ -69,8 +66,6 @@
       td, th { border: 1px solid #cbd5e1 !important; padding: 3px 5px !important; }
      }
     </style>
-
-  <link rel="stylesheet" href="/index.css">
     <script type="importmap">
     {
       "imports": {
@@ -85,9 +80,11 @@
       }
     }
     </script>
-  <script type="module" crossorigin src="/static/assets/index-BJnk-4V9.js"></script>
+  <link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>

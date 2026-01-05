@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const AppContent: React.FC = () => {
-  const { user, token, isLoading: authLoading, logout, hasPerm, permissions, updateUser } = useAuth();
+  const { user, token, isLoading: authLoading, logout, hasPerm } = useAuth();
   const [isInitializing, setIsInitializing] = useState(true);
   const [view, setView] = useState<'dashboard' | 'users' | 'profile' | 'reports'>('dashboard');
   
@@ -40,39 +40,19 @@ const AppContent: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
 
-  const theme: AppTheme = user?.theme || 'slate';
+  const theme: AppTheme = user?.theme || 'indigo';
 
   useEffect(() => {
-    // Reset all data states immediately when token changes (login/logout/switch)
-    // to prevent stale data from previous users appearing.
-    setProjects([]);
-    setTransactions([]);
-    setActiveProjectId(null);
-    setView('dashboard');
-    setIsSidebarOpen(false);
-
-    if (!token || authLoading) {
-      setIsInitializing(false);
-      return;
-    }
+    if (!token || authLoading) return;
 
     const loadData = async () => {
-      setIsInitializing(true);
       try {
-        const canViewProjects = permissions.canViewProjects;
-        const canViewTransactions = permissions.canViewTransactions;
-
-        if (!canViewProjects && !canViewTransactions) {
-          setIsInitializing(false);
-          return;
-        }
-
         const [apiProjects, apiTransactions] = await Promise.all([
-          canViewProjects ? apiService.fetchProjects() : Promise.resolve([]),
-          canViewTransactions ? apiService.fetchTransactions() : Promise.resolve([])
+          apiService.fetchProjects(),
+          apiService.fetchTransactions()
         ]);
         
-        // Sort projects: newest first
+        // Sort projects: newest first (assume higher ID or higher createdAt is newer)
         const sortedProjects = [...apiProjects].sort((a, b) => {
           if (a.createdAt && b.createdAt) return b.createdAt - a.createdAt;
           return Number(b.id) - Number(a.id);
@@ -88,7 +68,7 @@ const AppContent: React.FC = () => {
     };
 
     loadData();
-  }, [token, authLoading, permissions.canViewProjects, permissions.canViewTransactions]);
+  }, [token, authLoading]);
 
   const activeProject = useMemo(() => 
     projects.find(p => p.id === activeProjectId) || null
@@ -101,6 +81,7 @@ const AppContent: React.FC = () => {
   const handleAddProject = async (name: string, description: string, icon: string) => {
     try {
       const newProject = await apiService.createProject(name, description, icon);
+      // Ensure new project is added at the VERY top of the list
       setProjects(prev => [newProject, ...prev]);
       setActiveProjectId(newProject.id);
       setView('dashboard');
@@ -195,7 +176,7 @@ const AppContent: React.FC = () => {
   if (authLoading || (token && isInitializing)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     );
   }
@@ -238,12 +219,12 @@ const AppContent: React.FC = () => {
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
           {view === 'users' && <UserManagement />}
-          {view === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={updateUser} />}
+          {view === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={() => {}} />}
           {view === 'reports' && <ReportsView transactions={transactions} projects={projects} />}
           
           {view === 'dashboard' && (
             <div className="max-w-7xl mx-auto h-full">
-              {activeProject && permissions.canViewProjects && permissions.canViewTransactions ? (
+              {activeProject ? (
                 <div className="space-y-6">
                   <ProjectHeader 
                     project={activeProject} 

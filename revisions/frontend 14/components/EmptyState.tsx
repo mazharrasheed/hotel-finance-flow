@@ -30,7 +30,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   projects, 
   transactions,
   onSelectProject,
-  theme = 'slate'
+  theme = 'indigo'
 }) => {
   const projectStats = useMemo(() => {
     return projects.map(project => {
@@ -69,7 +69,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20 relative">
       {/* Portfolio Hero - Portfolio Command Center */}
-      <section className="bg-[var(--primary)] rounded-[3rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden group transition-colors duration-500">
+      <section className="bg-slate-900 rounded-[3rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden group">
         {/* Thematic Watermarks for Hero */}
         <div className="absolute -top-20 -right-20 p-10 opacity-[0.07] group-hover:scale-110 transition-transform duration-1000 pointer-events-none text-white">
           <Hotel size={450} />
@@ -87,32 +87,32 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-white/10">
-              <Sparkles size={12} className="text-white/60" /> Executive Summary
+              <Sparkles size={12} className="text-[var(--secondary)]" /> Executive Summary
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none mb-6">
-              Portfolio <br /><span className="text-white/60">Command Center</span>
+              Portfolio <br /><span className="text-[var(--secondary)]">Command Center</span>
             </h1>
-            <p className="text-white/70 font-medium text-lg max-w-md leading-relaxed">
+            <p className="text-slate-400 font-medium text-lg max-w-md leading-relaxed">
               Monitoring <span className="text-white font-bold">{projectCount} hospitality entities</span> with a real-time financial audit.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-             <div className="bg-white/10 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/20 transition-colors">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300 mb-1">Total Inflow</p>
+             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-colors">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-1">Total Inflow</p>
                 <p className="text-2xl font-black tracking-tighter">PKR {totals.income.toLocaleString()}</p>
-                <div className="mt-3 flex items-center gap-1.5 text-emerald-300 text-[10px] font-bold">
+                <div className="mt-3 flex items-center gap-1.5 text-emerald-400 text-[10px] font-bold">
                   <ArrowUpRight size={12} /> Positive Growth
                 </div>
              </div>
-             <div className="bg-white/10 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/20 transition-colors">
-                <p className="text-[10px] font-black uppercase tracking-widest text-rose-300 mb-1">Total Outflow</p>
+             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-colors">
+                <p className="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-1">Total Outflow</p>
                 <p className="text-2xl font-black tracking-tighter">PKR {totals.expense.toLocaleString()}</p>
-                <div className="mt-3 flex items-center gap-1.5 text-rose-300 text-[10px] font-bold">
+                <div className="mt-3 flex items-center gap-1.5 text-rose-400 text-[10px] font-bold">
                   <ArrowDownRight size={12} /> Operating Costs
                 </div>
              </div>
-             <div className="sm:col-span-2 bg-black/10 backdrop-blur-md border border-white/10 p-6 rounded-[2rem] shadow-xl">
+             <div className="sm:col-span-2 bg-[var(--primary)] p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-1">Net Portfolio Valuation</p>
                 <p className="text-3xl font-black tracking-tighter">PKR {totals.net.toLocaleString()}</p>
                 <p className="mt-2 text-[10px] font-bold text-white/50">Consolidated balance across all ledgers</p>

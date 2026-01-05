@@ -1,4 +1,3 @@
-
 const API_BASE = `https://projectsfinanceflow.pythonanywhere.com`;
 
 const handleResponse = async (res: Response) => {
@@ -7,40 +6,23 @@ const handleResponse = async (res: Response) => {
   if (contentType?.includes("application/json")) {
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || data.non_field_errors?.[0] || "The credentials provided are incorrect.");
+      throw new Error(data.detail || data.non_field_errors?.[0] || "Request failed");
     }
     return data;
   }
 
   if (res.ok) {
+    console.warn(`Expected JSON but got ${contentType} from ${res.url}`);
     return null;
   }
 
-  if (res.status >= 500) {
-    throw new Error("The server is currently undergoing maintenance. Please try again shortly.");
-  }
-
   const text = await res.text().catch(() => "");
-  throw new Error(`Connection issue (${res.status}). Please try again.`);
-};
-
-/**
- * Common wrapper for fetch to catch network-level errors like "Failed to fetch"
- */
-const safeFetch = async (url: string, options?: RequestInit) => {
-  try {
-    return await fetch(url, options);
-  } catch (err: any) {
-    if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-      throw new Error("Could not connect to the management server. Please check your internet connection or try again later.");
-    }
-    throw err;
-  }
+  throw new Error(`Error ${res.status} from ${res.url}: ${text.slice(0, 200)}`);
 };
 
 export const authService = {
   login: async (username: string, password: string) => {
-    const res = await safeFetch(`${API_BASE}/api-token-auth/`, {
+    const res = await fetch(`${API_BASE}/api-token-auth/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -51,7 +33,7 @@ export const authService = {
   getCurrentUser: async (token: string) => {
     if (!token) return null;
     try {
-      const res = await safeFetch(`${API_BASE}/api/current_user/`, {
+      const res = await fetch(`${API_BASE}/api/current_user/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
       return await handleResponse(res);
@@ -64,7 +46,7 @@ export const authService = {
   getPermissions: async (token: string) => {
     if (!token) return {};
     try {
-      const res = await safeFetch(`${API_BASE}/api/users/me/permissions/`, {
+      const res = await fetch(`${API_BASE}/api/users/me/permissions/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
       return await handleResponse(res) || {};
@@ -75,8 +57,8 @@ export const authService = {
   },
 
   changePassword: async (token: string, data: any) => {
-    if (!token) throw new Error("Authentication token required");
-    const res = await safeFetch(`${API_BASE}/change-password/`, {
+    if (!token) throw new Error("Token required");
+    const res = await fetch(`${API_BASE}/change-password/`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -88,7 +70,7 @@ export const authService = {
   },
 
   forgotPassword: async (email: string) => {
-    const res = await safeFetch(`${API_BASE}/api/forgot-password/`, {
+    const res = await fetch(`${API_BASE}/api/forgot-password/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -97,7 +79,7 @@ export const authService = {
   },
 
   resetPassword: async (token: string, data: any) => {
-    const res = await safeFetch(`${API_BASE}/api/reset-password/${token}/`, {
+    const res = await fetch(`${API_BASE}/api/reset-password/${token}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

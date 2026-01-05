@@ -9,7 +9,7 @@ export interface Permissions {
 }
 
 export type UserRole = 'admin' | 'user';
-export type AppTheme = 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
+export type AppTheme = 'indigo' | 'emerald' | 'rose' | 'amber';
 
 export interface User {
   id: string | number;

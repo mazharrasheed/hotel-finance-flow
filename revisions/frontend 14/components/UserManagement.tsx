@@ -12,7 +12,7 @@ interface DjangoPermission {
 }
 
 const UserManagement: React.FC = () => {
-  const { user: currentAdmin, hasPerm } = useAuth();
+  const { user: currentAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [availablePermissions, setAvailablePermissions] = useState<DjangoPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +21,7 @@ const UserManagement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
+  // Form state - Using codename strings as required by Django UserSerializer.permissions ListField
   const [formData, setFormData] = useState({
     username: '',
     first_name: '',
@@ -41,19 +41,17 @@ const UserManagement: React.FC = () => {
       ]);
       setUsers(usersData);
       
-      // Filter permissions to include:
-      // 1. All permissions from 'finance' app
-      // 2. Specific user management permissions from 'auth' app
-      const relevantPerms = Array.isArray(permsData) 
+      // STRICT FILTERING: Only show permissions that belong to the 'finance' app label.
+      // This handles cases where Superusers might receive every permission in the system.
+      const financeOnlyPerms = Array.isArray(permsData) 
         ? permsData.filter((p: any) => 
-            p && (
-              p.app_label === 'finance' ||
-              (p.app_label === 'auth' && ['add_user', 'change_user', 'delete_user', 'view_user'].includes(p.codename))
-            )
+            p && 
+            p.app_label && 
+            p.app_label.trim().toLowerCase() === 'finance'
           )
         : [];
       
-      setAvailablePermissions(relevantPerms);
+      setAvailablePermissions(financeOnlyPerms);
     } catch (err) {
       console.error("Data load failed:", err);
     } finally {
@@ -82,16 +80,20 @@ const UserManagement: React.FC = () => {
 
   const handleEdit = (user: any) => {
     setEditingUser(user);
+    
+    // UserSerializer returns permission_details list of objects with codename
+    const currentCodenames = Array.isArray(user.permission_details) 
+      ? user.permission_details.map((p: any) => p.codename)
+      : [];
+
     setFormData({
-      username: user.username || '',
+      username: user.username,
       first_name: user.first_name || '',
       last_name: user.last_name || '',
       email: user.email || '',
       password: '', 
       confirm_password: '',
-      permissions: Array.isArray(user.permission_details) 
-        ? user.permission_details.map((p: any) => p.codename)
-        : []
+      permissions: currentCodenames
     });
     setShowAddForm(true);
   };
@@ -111,11 +113,11 @@ const UserManagement: React.FC = () => {
 
     if (!editingUser) {
       if (!formData.password) {
-        setError("Please provide an access password for the new personnel.");
+        setError("Password is required for new users.");
         return;
       }
       if (formData.password !== formData.confirm_password) {
-        setError("The confirmed password does not match.");
+        setError("Passwords do not match.");
         return;
       }
     }
@@ -127,7 +129,7 @@ const UserManagement: React.FC = () => {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
-        permissions: formData.permissions
+        permissions: formData.permissions // Match UserSerializer 'permissions' write_only field
       };
 
       if (formData.password) {
@@ -144,8 +146,7 @@ const UserManagement: React.FC = () => {
       setUsers(freshUsers);
       resetForm();
     } catch (err: any) {
-      // Catch all errors and display them in a user-friendly format
-      setError(err.message || "An unexpected error occurred while saving the personnel record. Please check your connection and try again.");
+      setError(err.message || "Failed to save personnel record.");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,25 +170,19 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const canAddUser = hasPerm('add_user', 'auth');
-  const canEditUser = hasPerm('change_user', 'auth');
-  const canDeleteUser = hasPerm('delete_user', 'auth');
-
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Personnel Directory</h2>
-          <p className="text-slate-400 font-medium">Manage project access and administrative permissions.</p>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Access Control</h2>
+          <p className="text-slate-400 font-medium">Manage project personnel and security clearances.</p>
         </div>
-        {canAddUser && (
-          <button 
-            onClick={() => { resetForm(); setShowAddForm(true); }}
-            className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl active:scale-95"
-          >
-            <UserPlus size={18} /> Register Personnel
-          </button>
-        )}
+        <button 
+          onClick={() => { resetForm(); setShowAddForm(true); }}
+          className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl active:scale-95"
+        >
+          <UserPlus size={18} /> Register Personnel
+        </button>
       </header>
 
       {isLoading ? (
@@ -206,9 +201,7 @@ const UserManagement: React.FC = () => {
                   {u.is_staff || u.is_superuser ? <Shield size={24} /> : <UserCircle size={24} />}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-800">
-                    {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}` : `User (${u.username})`}
-                  </h3>
+                  <h3 className="font-black text-slate-800">{u.first_name} {u.last_name || u.username}</h3>
                   <div className="flex items-center gap-3 mt-0.5">
                     <p className="text-xs font-bold text-slate-400 flex items-center gap-1"><Mail size={12} /> {u.email || 'No email'}</p>
                     <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-slate-50 text-slate-500 border border-slate-100">@{u.username}</span>
@@ -217,31 +210,28 @@ const UserManagement: React.FC = () => {
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 {u.is_superuser && <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md">Root</span>}
-                {canEditUser && (
-                  <button 
-                    onClick={() => handleEdit(u)}
-                    className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"
-                    title="Edit details"
-                  >
-                    <Edit3 size={18} />
-                  </button>
-                )}
-                {canDeleteUser && (
-                  <button 
-                    onClick={() => handleDelete(u.id)} 
-                    disabled={u.id === currentAdmin?.id} 
-                    className="p-3 text-slate-300 hover:text-rose-600 disabled:opacity-0 transition-colors"
-                    title="Remove access"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                <button 
+                  onClick={() => handleEdit(u)}
+                  className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"
+                  title="Edit details"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(u.id)} 
+                  disabled={u.id === currentAdmin?.id} 
+                  className="p-3 text-slate-300 hover:text-rose-600 disabled:opacity-0 transition-colors"
+                  title="Remove access"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Register/Edit Personnel Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100 my-8">
@@ -251,7 +241,7 @@ const UserManagement: React.FC = () => {
                   {editingUser ? 'Edit Personnel' : 'Register Personnel'}
                 </h3>
                 <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">
-                  {editingUser ? `Updating @${editingUser.username}` : 'Create New System Access'}
+                  {editingUser ? `Updating access for @${editingUser.username}` : 'Create System Access'}
                 </p>
               </div>
               <button onClick={resetForm} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400">
@@ -260,39 +250,24 @@ const UserManagement: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmitUser} className="space-y-6">
-              {error && (
-                <div className="flex items-center gap-3 p-5 bg-rose-50 text-rose-600 rounded-2xl animate-in slide-in-from-top-4 duration-300 border border-rose-100">
-                  <div className="p-2 bg-white rounded-xl shadow-sm">
-                    <AlertCircle size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5">Registration Issue</p>
-                    <p className="text-xs font-bold leading-relaxed">{error}</p>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
                   <input 
                     required 
-                    name="first_name"
                     value={formData.first_name} 
-                    onChange={e => setFormData(prev => ({...prev, first_name: e.target.value}))}
+                    onChange={e => setFormData({...formData, first_name: e.target.value})}
                     className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                    placeholder="e.g. Ali"
+                    placeholder="John"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
                   <input 
-                    required
-                    name="last_name"
                     value={formData.last_name} 
-                    onChange={e => setFormData(prev => ({...prev, last_name: e.target.value}))}
+                    onChange={e => setFormData({...formData, last_name: e.target.value})}
                     className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                    placeholder="e.g. Khan"
+                    placeholder="Doe"
                   />
                 </div>
               </div>
@@ -301,11 +276,11 @@ const UserManagement: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
                   <div className="relative">
-                    <UserCircle size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <UserPlus size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                     <input 
                       required 
                       value={formData.username} 
-                      onChange={e => setFormData(prev => ({...prev, username: e.target.value.toLowerCase().replace(/\s/g, '')}))}
+                      onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
                       className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
                       placeholder="johndoe"
                     />
@@ -319,7 +294,7 @@ const UserManagement: React.FC = () => {
                       type="email"
                       required 
                       value={formData.email} 
-                      onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
+                      onChange={e => setFormData({...formData, email: e.target.value})}
                       className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
                       placeholder="john@example.com"
                     />
@@ -338,7 +313,7 @@ const UserManagement: React.FC = () => {
                       type="password"
                       required={!editingUser} 
                       value={formData.password} 
-                      onChange={e => setFormData(prev => ({...prev, password: e.target.value}))}
+                      onChange={e => setFormData({...formData, password: e.target.value})}
                       className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
                       placeholder={editingUser ? "Leave blank to keep current" : "••••••••"}
                     />
@@ -352,7 +327,7 @@ const UserManagement: React.FC = () => {
                       type="password"
                       required={!!formData.password} 
                       value={formData.confirm_password} 
-                      onChange={e => setFormData(prev => ({...prev, confirm_password: e.target.value}))}
+                      onChange={e => setFormData({...formData, confirm_password: e.target.value})}
                       className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
                       placeholder="••••••••"
                     />
@@ -360,13 +335,18 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dynamic Permissions from Django */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Management Clearance</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Finance Security Clearances</label>
                   <Settings2 size={12} className="text-slate-300" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {availablePermissions.map(perm => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  {isLoading ? (
+                    <div className="col-span-full flex justify-center py-4"><Loader2 className="animate-spin text-slate-300" size={16} /></div>
+                  ) : availablePermissions.length === 0 ? (
+                    <p className="col-span-full text-center py-4 text-[10px] font-bold text-slate-300 uppercase italic">No system permissions found for 'finance'...</p>
+                  ) : availablePermissions.map(perm => (
                     <div 
                       key={perm.codename}
                       onClick={() => togglePermission(perm.codename)}
@@ -380,7 +360,7 @@ const UserManagement: React.FC = () => {
                         <p className={`text-[10px] font-black uppercase tracking-tight ${formData.permissions.includes(perm.codename) ? 'text-indigo-600' : 'text-slate-500'}`}>
                           {perm.name}
                         </p>
-                        <p className="text-[8px] font-bold text-slate-300 uppercase leading-none mt-1">{perm.app_label}</p>
+                        <p className="text-[8px] font-medium text-slate-400 truncate mt-0.5">{perm.app_label}</p>
                       </div>
                       {formData.permissions.includes(perm.codename) && <CheckCircle2 size={14} className="text-indigo-600 shrink-0" />}
                     </div>
@@ -388,19 +368,19 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
+              {error && (
+                <div className="flex items-center gap-2 p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
+
               <button
                 disabled={isSubmitting}
                 type="submit"
-                className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-50"
+                className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 size={20} className="animate-spin" />
-                    <span>Synchronizing...</span>
-                  </div>
-                ) : (
-                  editingUser ? 'Update Personnel Record' : 'Create Personnel Record'
-                )}
+                {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : editingUser ? 'Update Personnel Record' : 'Create Personnel Record'}
               </button>
             </form>
           </div>

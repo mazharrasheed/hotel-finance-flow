@@ -49,11 +49,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
     const fetchPerms = async () => {
       try {
         const perms = await apiService.fetchAvailablePermissions();
-        // Show relevant auth and finance permissions
-        const relevantPerms = Array.isArray(perms) 
-          ? perms.filter((p: any) => p && p.app_label && ['finance', 'auth'].includes(p.app_label.toLowerCase()))
+        // Strict filter for 'finance' app label as per project requirements
+        const financePerms = Array.isArray(perms) 
+          ? perms.filter((p: any) => p && p.app_label && p.app_label.toLowerCase() === 'finance')
           : [];
-        setAvailablePermissions(relevantPerms);
+        setAvailablePermissions(financePerms);
       } catch (err) {
         console.error("Failed to load permissions list:", err);
       } finally {
@@ -134,8 +134,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
     { id: 'indigo', name: 'Professional Indigo', color: 'bg-indigo-600' },
     { id: 'emerald', name: 'Financial Emerald', color: 'bg-emerald-600' },
     { id: 'rose', name: 'Dynamic Rose', color: 'bg-rose-600' },
-    { id: 'amber', name: 'Hospitality Amber', color: 'bg-amber-600' },
-    { id: 'slate', name: 'Executive Slate', color: 'bg-slate-900' }
+    { id: 'amber', name: 'Hospitality Amber', color: 'bg-amber-600' }
   ];
 
   return (
@@ -182,7 +181,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
             )}
           </div>
           <div className="pb-6 hidden md:block">
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight">{activeUser.name || 'Ali & Company User'}</h2>
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight">{activeUser.name}</h2>
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1.5">
               {activeUser.is_superuser ? 'Super Administrator' : `${activeUser.role || 'Personnel'} Account`}
             </p>
@@ -192,6 +191,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10 md:mt-16">
         <div className="space-y-8">
+          {/* Theme Selection */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
                <Palette size={16} className="text-[var(--primary)]" /> System Themes
@@ -215,16 +215,18 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
             </div>
           </div>
 
+          {/* Security Clearances Section - Now Dynamic */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
                <Shield size={16} className="text-indigo-600" /> Security Clearances
             </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+            <div className="space-y-3">
               {isLoadingPerms ? (
                 <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-slate-300" /></div>
               ) : availablePermissions.length === 0 ? (
                 <p className="text-center py-4 text-[10px] font-bold text-slate-300 uppercase italic">No system permissions found...</p>
               ) : availablePermissions.map(perm => {
+                // Check if user has permission. handles codename and app_label.codename formats.
                 const hasPermission = activeUser.is_superuser || activeUser.permissions?.[perm.codename] || activeUser.permissions?.[`${perm.app_label}.${perm.codename}`];
                 return (
                   <div 
