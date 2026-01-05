@@ -9,7 +9,7 @@ import {
   isToday, 
   addMonths, 
   endOfWeek,
-  parseISO,
+  // Use native Date constructor instead of parseISO as it is missing from the environment
   isValid
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, BarChart4, Search, X, Calendar as CalendarIcon, FileText } from 'lucide-react';
@@ -75,7 +75,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const stats: Record<string, { income: number; expense: number; transactions: Transaction[] }> = {};
     
     transactions.forEach(t => {
-      const dateKey = format(parseISO(t.date), 'yyyy-MM-dd');
+      // Use native Date constructor for ISO strings
+      const dateKey = format(new Date(t.date), 'yyyy-MM-dd');
       if (!stats[dateKey]) {
         stats[dateKey] = { income: 0, expense: 0, transactions: [] };
       }
@@ -92,7 +93,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const query = searchQuery.toLowerCase();
     
     return transactions.filter(t => {
-      const tDate = parseISO(t.date);
+      // Use native Date constructor for ISO strings
+      const tDate = new Date(t.date);
       if (!isValid(tDate)) return false;
 
       const noteMatch = t.note.toLowerCase().includes(query);
@@ -154,7 +156,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </div>
 
-          {/* {user.permissions.canViewReports && (
+          {user.permissions.canViewReports && (
             <button 
               onClick={generateInsight}
               disabled={isLoadingInsight || transactions.length === 0}
@@ -163,7 +165,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <BarChart4 size={16} className={isLoadingInsight ? 'animate-pulse' : ''} />
               {isLoadingInsight ? 'Processing...' : 'Budget Analysis'}
             </button>
-          )} */}
+          )}
         </div>
       </div>
 
@@ -204,7 +206,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Record Date</p>
-                        <p className="text-xs font-bold text-slate-700 mt-1">{format(parseISO(t.date), 'MMM dd, yyyy')}</p>
+                        {/* Use native Date constructor */}
+                        <p className="text-xs font-bold text-slate-700 mt-1">{format(new Date(t.date), 'MMM dd, yyyy')}</p>
                       </div>
                     </div>
                     <span className={`text-xs font-black uppercase tracking-widest ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -244,9 +247,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 const isCurrentMonth = isSameMonth(day, monthStart);
                 const isDayToday = isToday(day);
 
-                const hasIncome = dayStats.income > 0;
-                const hasExpense = dayStats.expense > 0;
-
                 return (
                   <div 
                     key={idx} 
@@ -265,18 +265,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       {user.permissions.canAddTransaction && (
                         <div className="transition-opacity flex gap-1">
                           <button 
-                            disabled={hasIncome}
                             onClick={(e) => { e.stopPropagation(); onAddTransaction('income', dateKey); }}
-                            className={`p-1 md:p-1.5 rounded-md transition-all bg-emerald-100 text-emerald-700 ${hasIncome ? 'opacity-20 grayscale cursor-not-allowed' : 'hover:bg-emerald-200'}`}
-                            title={hasIncome ? "Income already recorded" : "Add Income"}
+                            className="p-1 md:p-1.5 rounded-md transition-all bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            title="Add Income"
                           >
                             <Plus size={12} />
                           </button>
                           <button 
-                            disabled={hasExpense}
                             onClick={(e) => { e.stopPropagation(); onAddTransaction('expense', dateKey); }}
-                            className={`p-1 md:p-1.5 rounded-md transition-all bg-rose-100 text-rose-700 ${hasExpense ? 'opacity-20 grayscale cursor-not-allowed' : 'hover:bg-rose-200'}`}
-                            title={hasExpense ? "Expense already recorded" : "Add Expense"}
+                            className="p-1 md:p-1.5 rounded-md transition-all bg-rose-100 text-rose-700 hover:bg-rose-200"
+                            title="Add Expense"
                           >
                             <Plus size={12} />
                           </button>

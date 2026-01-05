@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User } from '../types';
-import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud } from 'lucide-react';
+import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -10,6 +10,7 @@ interface NavbarProps {
   onExport: () => void;
   globalBalance: number;
   onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
+  onGeneralEntry: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ 
@@ -18,7 +19,8 @@ const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   onExport,
   globalBalance,
-  onSetView
+  onSetView,
+  onGeneralEntry
 }) => {
   const canBackup = user?.role === 'admin' || user?.permissions.canTakeBackup;
 
@@ -34,6 +36,16 @@ const Navbar: React.FC<NavbarProps> = ({
 
       <div className="flex-1 flex items-center">
         <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight">Overview</h2>
+        
+        {user?.permissions.canAddTransaction && (
+          <button 
+            onClick={onGeneralEntry}
+            className="ml-6 flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 group"
+          >
+            <PlusCircle size={16} className="group-hover:rotate-90 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">General Entry</span>
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 md:gap-4 ml-4">

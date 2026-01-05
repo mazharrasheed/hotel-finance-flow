@@ -12,7 +12,9 @@ fetchProjects: async (): Promise<Project[]> => {
   try {
     const res = await fetch(`${API_BASE}/projects/`);
     if (!res.ok) throw new Error('Failed to fetch projects');
+
     console.log(res)
+
     const data: Project[] = await res.json();
     console.log(data)
 
@@ -80,6 +82,7 @@ fetchProjects: async (): Promise<Project[]> => {
     if (!res.ok) throw new Error('Failed to delete project');
   },
 
+  
   // Transaction endpoints
 
   // Fetch all transactions

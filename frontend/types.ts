@@ -1,26 +1,27 @@
 
 export interface Permissions {
-  canViewDashboard: boolean;
-  canCreateProject: boolean;
-  canEditProject: boolean;
-  canDeleteProject: boolean;
-  canAddTransaction: boolean;
-  canEditTransaction: boolean;
-  canDeleteTransaction: boolean;
-  canViewReports: boolean;
-  canTakeBackup: boolean;
+  [key: string]: any;
+  canTakeBackup?: boolean;
+  canAddTransaction?: boolean;
+  canViewReports?: boolean;
+  canEditTransaction?: boolean;
+  canDeleteTransaction?: boolean;
 }
 
 export type UserRole = 'admin' | 'user';
 export type AppTheme = 'indigo' | 'emerald' | 'rose' | 'amber';
 
 export interface User {
-  id: string;
+  id: string | number;
+  username: string;
   email: string;
-  name: string;
+  first_name: string;
+  last_name: string;
+  name?: string;
   password?: string;
-  role: UserRole;
-  permissions: Permissions;
+  role?: UserRole;
+  is_staff?: boolean;
+  is_superuser?: boolean;
   avatar?: string;
   coverImage?: string;
   bio?: string;
@@ -28,6 +29,7 @@ export interface User {
   phoneNumber?: string;
   website?: string;
   theme?: AppTheme;
+  permissions: Permissions;
 }
 
 export interface Project {
@@ -43,7 +45,8 @@ export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
   id: string;
-  project: string; 
+  project?: string | null; 
+  general?: boolean | null;
   date: string;
   type: TransactionType;
   amount: number;

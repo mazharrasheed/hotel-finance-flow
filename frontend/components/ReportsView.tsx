@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { Transaction, Project } from '../types';
-import { Printer, FileText, TrendingUp, TrendingDown, Hotel, Search, Filter, X } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { Printer, FileText, TrendingUp, TrendingDown, Hotel, Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react';
+// Use native Date constructor instead of parseISO as it is missing from the environment
+import { format } from 'date-fns';
 
 interface ReportsViewProps {
   transactions: Transaction[];
@@ -12,24 +13,66 @@ interface ReportsViewProps {
 const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('');
 
   const filteredTransactions = useMemo(() => {
     let list = [...transactions];
 
     if (selectedProjectId !== 'all') {
-      list = list.filter(t => t.project === selectedProjectId);
+      const targetId = selectedProjectId === 'general' ? null : selectedProjectId;
+      list = list.filter(t => t.project === targetId);
+    }
+
+    if (filterDate) {
+      list = list.filter(t => t.date === filterDate);
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(t => 
         t.note.toLowerCase().includes(q) || 
-        format(parseISO(t.date), 'MMM dd, yyyy').toLowerCase().includes(q)
+        // Use native Date constructor for ISO strings
+        format(new Date(t.date), 'MMM dd, yyyy').toLowerCase().includes(q)
       );
     }
 
-    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, selectedProjectId, searchQuery]);
+    return list;
+  }, [transactions, selectedProjectId, filterDate, searchQuery]);
+
+  const ledgerData = useMemo(() => {
+    // 1. Create a stable chronological sort (Oldest to Newest)
+    // We add an index to maintain original relative order for same-day transactions
+    const indexed = filteredTransactions.map((t, i) => ({ ...t, originalIndex: i }));
+    
+    const sortedChronologically = [...indexed].sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      // Fallback to original index to keep same-day transactions in their entry order
+      return a.originalIndex - b.originalIndex;
+    });
+    
+    // 2. Calculate running balance based on chronological order
+    let runningBalance = 0;
+    const dataWithBalance = sortedChronologically.map(t => {
+      if (t.type === 'income') {
+        runningBalance += t.amount;
+      } else {
+        runningBalance -= t.amount;
+      }
+      return {
+        ...t,
+        runningBalance
+      };
+    });
+
+    // 3. Return reverse chronological for display (Newest to Oldest)
+    // This ensures the top row always contains the final net balance
+    return dataWithBalance.sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return b.originalIndex - a.originalIndex;
+    });
+  }, [filteredTransactions]);
 
   const stats = useMemo(() => {
     const income = filteredTransactions
@@ -52,7 +95,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print:hidden">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Financial Audit Reports</h2>
-          <p className="text-slate-400 font-medium">A complete ledger of all project transactions.</p>
+          <p className="text-slate-400 font-medium">A complete ledger of all individual project transactions.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -66,44 +109,66 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       </header>
 
       {/* Audit Filters - Only visible on screen */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8 print:hidden">
+      <div className="flex flex-col xl:flex-row gap-4 mb-8 print:hidden">
         <div className="flex-1 relative">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="Search notes or date..."
+            placeholder="Search notes or text-based date..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-medium text-slate-700"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={18} />
+              <X size={20} />
             </button>
           )}
         </div>
 
-        <div className="md:w-64 relative group">
-          <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
-          <select 
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
-          >
-            <option value="all">All Projects</option>
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="sm:w-56 relative group">
+            <CalendarIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
+            <input 
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full pl-12 pr-14 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer"
+            />
+            {filterDate && (
+              <button 
+                onClick={(e) => { e.preventDefault(); setFilterDate(''); }} 
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
+                title="Clear date filter"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+
+          <div className="sm:w-64 relative group">
+            <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
+            <select 
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+            >
+              <option value="all">All Projects</option>
+              <option value="general">General (No Project)</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Printable Summary Header (Compact for space) */}
+      {/* Printable Summary Header */}
       <div className="hidden print:block mb-2 border-b-2 border-slate-800 pb-1">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2 text-indigo-700 font-black text-base">
              <Hotel size={18} />
-             FinanceFlow Audit Record {selectedProjectId !== 'all' ? ` - ${projects.find(p => p.id === selectedProjectId)?.name}` : ''}
+             FinanceFlow Audit Record {selectedProjectId !== 'all' ? ` - ${selectedProjectId === 'general' ? 'General Entries' : projects.find(p => p.id === selectedProjectId)?.name}` : ''}
            </div>
            <div className="text-right">
              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Financial Ledger</p>
@@ -160,55 +225,61 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 print:bg-slate-100 print:border-slate-800">
                 <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Date</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Project</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Type</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Note</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Amount</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Project/General</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Description</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Income</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Expense</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 print:divide-slate-300">
-              {filteredTransactions.length === 0 ? (
+              {ledgerData.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No matching records</p>
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map(t => {
-                  const project = projects.find(p => p.id === t.project);
+                ledgerData.map((row, idx) => {
+                  const project = projects.find(p => p.id === row.project);
+                  const projectName = row.general ? 'General' : (project?.name || 'Archived Project');
                   return (
-                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap">
-                        <span className="text-sm print:text-[8px] font-bold text-slate-700">{format(parseISO(t.date), 'MMM dd, yyyy')}</span>
+                        {/* Use native Date constructor for ISO strings */}
+                        <span className="text-sm print:text-[8px] font-bold text-slate-700">{format(new Date(row.date), 'MMM dd, yyyy')}</span>
                       </td>
                       <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap">
-                        <span className="text-sm print:text-[8px] font-bold text-slate-700">{project?.name || 'Archived'}</span>
-                      </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap uppercase tracking-tighter">
-                        <span className={`text-[10px] print:text-[7px] font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {t.type}
+                        <span className={`text-sm print:text-[8px] font-bold ${row.general ? 'text-indigo-600 italic' : 'text-slate-800'}`}>
+                          {projectName}
                         </span>
                       </td>
                       <td className="px-6 py-4 print:px-2 print:py-1">
-                        <span className="text-sm print:text-[8px] font-medium text-slate-500 italic block">
-                          {t.note || '-'}
+                        <span className="text-sm print:text-[8px] font-medium text-slate-500 italic block min-w-[150px]">
+                          {row.note || '-'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-emerald-600">
+                        {row.type === 'income' ? row.amount.toLocaleString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-rose-600">
+                        {row.type === 'expense' ? row.amount.toLocaleString() : '-'}
+                      </td>
                       <td className={`px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black ${
-                        t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                        row.runningBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'
                       }`}>
-                         {t.amount.toLocaleString()}
+                         {row.runningBalance.toLocaleString()}
                       </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
-            {filteredTransactions.length > 0 && (
+            {ledgerData.length > 0 && (
               <tfoot className="bg-slate-50 border-t-2 border-slate-100 print:bg-white print:border-slate-800">
                 <tr>
-                  <td colSpan={4} className="px-6 py-4 print:px-2 print:py-1 text-right">
-                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Filtered Position:</span>
+                  <td colSpan={5} className="px-6 py-4 print:px-2 print:py-1 text-right">
+                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Position:</span>
                   </td>
                   <td className={`px-6 py-4 print:px-2 print:py-1 text-right text-lg print:text-sm font-black ${
                     stats.net >= 0 ? 'text-indigo-600' : 'text-rose-600'

@@ -1,52 +1,33 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, Loader2, LayoutDashboard, AlertCircle, Hotel, Building2 } from 'lucide-react';
-import { User } from '../types';
+import { User, Lock, Loader2, LayoutDashboard, AlertCircle, Hotel, Building2 } from 'lucide-react';
+import { authService } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
-interface LoginProps {
-  onLogin: (user: User) => void;
-}
-
-const DEFAULT_ADMIN: User = {
-  id: 'admin-001',
-  email: 'admin@finance.com',
-  password: 'admin123',
-  name: 'System Admin',
-  role: 'admin',
-  permissions: {
-    canViewDashboard: true,
-    canCreateProject: true,
-    canEditProject: true,
-    canDeleteProject: true,
-    canAddTransaction: true,
-    canEditTransaction: true,
-    canDeleteTransaction: true,
-    canViewReports: true,
-    canTakeBackup: true
-  }
-};
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Login: React.FC = () => {
+  const { login: authLogin } = useAuth();
+  // Pre-filled with common dev credentials as requested: admin / admin
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
+    
     setIsLoading(true);
     setError('');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      if (email.toLowerCase() === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
-        localStorage.setItem('finance_active_user', JSON.stringify(DEFAULT_ADMIN));
-        onLogin(DEFAULT_ADMIN);
+      const data = await authService.login(username, password);
+      if (data && data.token) {
+        await authLogin(data.token);
       } else {
-        setError('Invalid credentials. Check admin email and password.');
+        throw new Error('Authentication failed: No token received');
       }
-    } catch (err) {
-      setError('Login failed. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +35,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 relative overflow-hidden">
-      {/* Reasonable Login Watermarks */}
       <div className="absolute -bottom-20 -left-20 opacity-[0.05] text-indigo-900 pointer-events-none -rotate-12">
         <Hotel size={500} strokeWidth={1} />
       </div>
@@ -71,23 +51,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <p className="text-slate-400 text-sm mt-1">Project Management Portal</p>
         </div>
 
-        <div className="mb-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-          <p className="text-[10px] font-bold text-indigo-600 uppercase mb-2">Demo Access</p>
-          <div className="text-xs space-y-1 font-medium text-slate-600">
-            <p>Email: <span className="font-bold">admin@finance.com</span></p>
-            <p>Password: <span className="font-bold">admin123</span></p>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Email</label>
+            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Username</label>
             <div className="relative mt-1">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium"
-                placeholder="admin@finance.com"
+                type="text" 
+                required 
+                value={username} 
+                onChange={e => setUsername(e.target.value)}
+                disabled={isLoading}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium disabled:opacity-50"
+                placeholder="Username"
               />
             </div>
           </div>
@@ -96,22 +72,27 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="relative mt-1">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium"
+                type="password" 
+                required 
+                value={password} 
+                onChange={e => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all font-medium disabled:opacity-50"
                 placeholder="••••••••"
               />
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">
+            <div className="flex items-center gap-2 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold animate-in fade-in slide-in-from-top-1">
               <AlertCircle size={14} />
               {error}
             </div>
           )}
 
           <button 
-            disabled={isLoading} type="submit"
+            disabled={isLoading} 
+            type="submit"
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center"
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Login'}

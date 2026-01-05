@@ -15,9 +15,11 @@ import ReportsView from './components/ReportsView';
 import { Loader2, AlertTriangle, XCircle, CheckCircle2, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { apiService } from './services/apiService';
+import { format } from 'date-fns';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+const AppContent: React.FC = () => {
+  const { user, token, isLoading: authLoading, logout, hasPerm } = useAuth();
   const [isInitializing, setIsInitializing] = useState(true);
   const [view, setView] = useState<'dashboard' | 'users' | 'profile' | 'reports'>('dashboard');
   
@@ -31,6 +33,7 @@ const App: React.FC = () => {
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false);
   const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isGeneralEntry, setIsGeneralEntry] = useState(false);
 
   // Project Deletion states
   const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
@@ -40,53 +43,25 @@ const App: React.FC = () => {
   const theme: AppTheme = user?.theme || 'indigo';
 
   useEffect(() => {
-    const initApp = async () => {
-      const savedActiveUser = localStorage.getItem('finance_active_user');
-      if (savedActiveUser) setUser(JSON.parse(savedActiveUser));
+    if (!token || authLoading) return;
 
+    const loadData = async () => {
       try {
         const [apiProjects, apiTransactions] = await Promise.all([
           apiService.fetchProjects(),
           apiService.fetchTransactions()
         ]);
-        
-        if (apiProjects.length > 0) setProjects(apiProjects);
-        else {
-          const local = localStorage.getItem('finance_projects');
-          if (local) setProjects(JSON.parse(local));
-        }
-
-        if (apiTransactions.length > 0) setTransactions(apiTransactions);
-        else {
-          const local = localStorage.getItem('finance_transactions');
-          if (local) setTransactions(JSON.parse(local));
-        }
+        setProjects(apiProjects);
+        setTransactions(apiTransactions);
       } catch (err) {
-        const localProjs = localStorage.getItem('finance_projects');
-        const localTrans = localStorage.getItem('finance_transactions');
-        if (localProjs) setProjects(JSON.parse(localProjs));
-        if (localTrans) setTransactions(JSON.parse(localTrans));
+        console.error("Data fetch error:", err);
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initApp();
-  }, []);
-
-  useEffect(() => {
-    if (!isInitializing) {
-      localStorage.setItem('finance_projects', JSON.stringify(projects));
-      localStorage.setItem('finance_transactions', JSON.stringify(transactions));
-    }
-  }, [projects, transactions, isInitializing]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('finance_active_user');
-    setUser(null);
-    setView('dashboard');
-    setActiveProjectId(null);
-  };
+    loadData();
+  }, [token, authLoading]);
 
   const activeProject = useMemo(() => 
     projects.find(p => p.id === activeProjectId) || null
@@ -120,7 +95,6 @@ const App: React.FC = () => {
     if (!projectToDeleteId) return;
     setIsDeletingProject(true);
     setDeleteError(null);
-    
     try {
       await apiService.deleteProject(projectToDeleteId);
       setProjects(prev => prev.filter(p => p.id !== projectToDeleteId));
@@ -128,23 +102,23 @@ const App: React.FC = () => {
       if (activeProjectId === projectToDeleteId) setActiveProjectId(null);
       setProjectToDeleteId(null);
     } catch (err) {
-      setDeleteError('Cloud synchronization failed. The project could not be removed from the main ledger.');
+      setDeleteError('Cloud synchronization failed.');
     } finally {
       setIsDeletingProject(false);
     }
   };
 
-  const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project' | 'date'>) => {
-    if (!activeProjectId || !selectedDate) return;
-    
+  const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project' | 'general'>) => {
+    const payload: any = {
+      ...data,
+      general: isGeneralEntry,
+      project: isGeneralEntry ? null : activeProjectId
+    };
     try {
-      const newTransaction = await apiService.createTransaction({
-        project: activeProjectId,
-        date: selectedDate,
-        ...data,
-      });
+      const newTransaction = await apiService.createTransaction(payload);
       setTransactions(prev => [...prev, newTransaction]);
       setIsModalOpen(false);
+      setIsGeneralEntry(false);
     } catch (err) {
       alert('Error saving transaction.');
     }
@@ -173,7 +147,7 @@ const App: React.FC = () => {
     const headers = ["Project", "Date", "Type", "Amount", "Note"];
     const rows = transactions.map(t => {
       const p = projects.find(proj => proj.id === t.project);
-      return [p?.name || "Archived", t.date, t.type.toUpperCase(), t.amount, t.note];
+      return [t.general ? 'General' : (p?.name || "Archived"), t.date, t.type.toUpperCase(), t.amount, t.note];
     });
     const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -184,7 +158,14 @@ const App: React.FC = () => {
     a.click();
   };
 
-  if (isInitializing) {
+  const openGeneralEntry = () => {
+    setIsGeneralEntry(true);
+    setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+    setModalType('income');
+    setIsModalOpen(true);
+  };
+
+  if (authLoading || (token && isInitializing)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -192,7 +173,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) return <Login onLogin={setUser} />;
+  if (!user) return <Login />;
 
   return (
     <div className={`flex h-screen bg-slate-50 text-slate-900 overflow-hidden relative font-['Inter'] theme-${theme}`}>
@@ -209,7 +190,6 @@ const App: React.FC = () => {
         onDeleteProject={(id) => setProjectToDeleteId(id)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        user={user}
         activeView={view}
         onSetView={setView}
       />
@@ -222,15 +202,16 @@ const App: React.FC = () => {
         <Navbar 
           onToggleSidebar={() => setIsSidebarOpen(true)}
           user={user}
-          onLogout={handleLogout}
+          onLogout={logout}
           onExport={handleExportCSV}
           globalBalance={globalBalance}
           onSetView={setView}
+          onGeneralEntry={openGeneralEntry}
         />
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-          {view === 'users' && <UserManagement activeAdmin={user} />}
-          {view === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={setUser} />}
+          {view === 'users' && <UserManagement />}
+          {view === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={() => {}} />}
           {view === 'reports' && <ReportsView transactions={transactions} projects={projects} />}
           
           {view === 'dashboard' && (
@@ -245,7 +226,7 @@ const App: React.FC = () => {
                     <CalendarView 
                       projectId={activeProjectId!}
                       transactions={transactions.filter(t => t.project === activeProjectId)}
-                      onAddTransaction={(type, date) => { setModalType(type); setSelectedDate(date); setIsModalOpen(true); }}
+                      onAddTransaction={(type, date) => { setIsGeneralEntry(false); setModalType(type); setSelectedDate(date); setIsModalOpen(true); }}
                       onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
                       onDeleteTransaction={handleDeleteTransaction}
                       activeProject={activeProject}
@@ -269,62 +250,19 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Project Deletion Confirmation Modal */}
       {projectToDeleteId && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-slate-100 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4">
-                <button onClick={() => setProjectToDeleteId(null)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
-                   <X size={20} />
-                </button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-slate-100 relative overflow-hidden text-center">
+             <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <AlertTriangle size={40} />
              </div>
-             <div className="text-center">
-                <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                   <AlertTriangle size={40} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Delete Project?</h3>
-                <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-                   This will permanently remove <span className="text-slate-800 font-black">"{projects.find(p => p.id === projectToDeleteId)?.name}"</span> and all its associated financial history. This action cannot be undone.
-                </p>
-                <div className="flex flex-col gap-3">
-                   <button 
-                     disabled={isDeletingProject}
-                     onClick={confirmDeleteProject}
-                     className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-rose-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                   >
-                     {isDeletingProject ? <Loader2 size={20} className="animate-spin" /> : "Confirm Deletion"}
-                   </button>
-                   <button 
-                     disabled={isDeletingProject}
-                     onClick={() => setProjectToDeleteId(null)}
-                     className="w-full py-4 text-slate-400 hover:text-slate-600 font-black text-sm uppercase tracking-widest transition-all"
-                   >
-                     Keep Project
-                   </button>
-                </div>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Project Deletion Error Modal */}
-      {deleteError && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in zoom-in duration-200">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-slate-100">
-             <div className="text-center">
-                <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                   <XCircle size={40} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Sync Error</h3>
-                <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-                   {deleteError}
-                </p>
-                <button 
-                  onClick={() => setDeleteError(null)}
-                  className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition-all"
-                >
-                  Dismiss
+             <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Delete Project?</h3>
+             <p className="text-slate-500 font-medium mb-8 leading-relaxed">Permanently remove this project and all history.</p>
+             <div className="flex flex-col gap-3">
+                <button disabled={isDeletingProject} onClick={confirmDeleteProject} className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg">
+                  {isDeletingProject ? <Loader2 size={20} className="animate-spin" /> : "Confirm Deletion"}
                 </button>
+                <button onClick={() => setProjectToDeleteId(null)} className="w-full py-4 text-slate-400 font-black">Keep Project</button>
              </div>
           </div>
         </div>
@@ -334,7 +272,7 @@ const App: React.FC = () => {
         <TransactionModal 
           type={modalType} 
           date={selectedDate!} 
-          onClose={() => setIsModalOpen(false)} 
+          onClose={() => { setIsModalOpen(false); setIsGeneralEntry(false); }} 
           onSubmit={handleAddTransaction} 
         />
       )}
@@ -346,18 +284,19 @@ const App: React.FC = () => {
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
-          onAdd={(type, date) => { 
-            setIsDayDetailOpen(false); 
-            setModalType(type); 
-            setSelectedDate(date); 
-            setIsModalOpen(true); 
-          }} 
+          onAdd={(type, date) => { setIsDayDetailOpen(false); setModalType(type); setSelectedDate(date); setIsModalOpen(true); }} 
           user={user}
         />
       )}
     </div>
   );
 };
+
+const App: React.FC = () => (
+  <AuthProvider>
+    <AppContent />
+  </AuthProvider>
+);
 
 export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
   const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
