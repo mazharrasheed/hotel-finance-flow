@@ -147,9 +147,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = Transaction
         fields = '__all__'
+
 
 class ProjectSerializer(serializers.ModelSerializer):
     # Optional: include transactions inside project data
