@@ -8,12 +8,7 @@ class CustomPermissions(models.Model):
         permissions = [
             ('view_dashboard', 'Can view dashboard'),
             ("view_balance_sheet", "Can view balance sheet"),
-            ("view_store", "Can view store"),
             ("view_reports", "Can view reports"),
-            ("view_inventory", "Can view inventory"),
-            ("view_measurements", "Can view measurements"),
-            ("add_measurements", "Can add measurements"),
-            ("change_measurements", "Can change measurements"),
             # Add more custom permissions here
         ]
 
