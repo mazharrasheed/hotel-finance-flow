@@ -1,27 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { UserPlus, Trash2, Shield, Mail, Key, UserCheck, X, Loader2, AlertCircle, UserCircle, CheckCircle2, Edit3, Settings2 } from 'lucide-react';
+import { UserPlus, Trash2, Shield, Mail, Key, UserCheck, X, Loader2, AlertCircle, UserCircle, CheckCircle2, Edit3 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 
-interface DjangoPermission {
-  codename: string;
-  name: string;
-  app_label: string;
-}
+const AVAILABLE_PERMISSIONS = [
+  { id: 'add_transaction', label: 'Add Transactions', description: 'Create new income/expense entries' },
+  { id: 'change_transaction', label: 'Edit Transactions', description: 'Modify existing financial records' },
+  { id: 'delete_transaction', label: 'Delete Transactions', description: 'Remove records from the system' },
+  { id: 'view_reports', label: 'View Reports', description: 'Access ledger and financial analysis' },
+  { id: 'can_backup', label: 'Take Backups', description: 'Export data to CSV format' },
+];
 
 const UserManagement: React.FC = () => {
   const { user: currentAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<DjangoPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state - Using codename strings as required by Django UserSerializer.permissions ListField
+  // Form state
   const [formData, setFormData] = useState({
     username: '',
     first_name: '',
@@ -29,38 +30,23 @@ const UserManagement: React.FC = () => {
     email: '',
     password: '',
     confirm_password: '',
-    permissions: [] as string[] 
+    permissions: [] as string[]
   });
   
-  const loadInitialData = async () => {
+  const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const [usersData, permsData] = await Promise.all([
-        apiService.fetchUsers(),
-        apiService.fetchAvailablePermissions()
-      ]);
-      setUsers(usersData);
-      
-      // STRICT FILTERING: Only show permissions that belong to the 'finance' app label.
-      // This handles cases where Superusers might receive every permission in the system.
-      const financeOnlyPerms = Array.isArray(permsData) 
-        ? permsData.filter((p: any) => 
-            p && 
-            p.app_label && 
-            p.app_label.trim().toLowerCase() === 'finance'
-          )
-        : [];
-      
-      setAvailablePermissions(financeOnlyPerms);
+      const data = await apiService.fetchUsers();
+      setUsers(data);
     } catch (err) {
-      console.error("Data load failed:", err);
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadInitialData();
+    loadUsers();
   }, []);
 
   const resetForm = () => {
@@ -78,32 +64,31 @@ const UserManagement: React.FC = () => {
     setError(null);
   };
 
-  const handleEdit = (user: any) => {
+  const handleEdit = (user: User) => {
     setEditingUser(user);
-    
-    // UserSerializer returns permission_details list of objects with codename
-    const currentCodenames = Array.isArray(user.permission_details) 
-      ? user.permission_details.map((p: any) => p.codename)
+    // Extract permissions that match our AVAILABLE_PERMISSIONS list
+    const currentPerms = user.permissions 
+      ? AVAILABLE_PERMISSIONS.filter(p => user.permissions[p.id]).map(p => p.id)
       : [];
 
     setFormData({
       username: user.username,
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      email: user.email || '',
-      password: '', 
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      password: '', // Keep empty for security
       confirm_password: '',
-      permissions: currentCodenames
+      permissions: currentPerms
     });
     setShowAddForm(true);
   };
 
-  const togglePermission = (codename: string) => {
+  const togglePermission = (id: string) => {
     setFormData(prev => ({
       ...prev,
-      permissions: prev.permissions.includes(codename)
-        ? prev.permissions.filter(p => p !== codename)
-        : [...prev.permissions, codename]
+      permissions: prev.permissions.includes(id)
+        ? prev.permissions.filter(p => p !== id)
+        : [...prev.permissions, id]
     }));
   };
 
@@ -111,13 +96,14 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    if (!editingUser) {
-      if (!formData.password) {
-        setError("Password is required for new users.");
-        return;
-      }
+    // Password validation only if provided (mandatory for new users, optional for edits)
+    if (!editingUser || formData.password) {
       if (formData.password !== formData.confirm_password) {
         setError("Passwords do not match.");
+        return;
+      }
+      if (formData.password.length < 8) {
+        setError("Password must be at least 8 characters.");
         return;
       }
     }
@@ -129,7 +115,7 @@ const UserManagement: React.FC = () => {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
-        permissions: formData.permissions // Match UserSerializer 'permissions' write_only field
+        user_permissions: formData.permissions 
       };
 
       if (formData.password) {
@@ -142,8 +128,7 @@ const UserManagement: React.FC = () => {
         await apiService.createUser(payload);
       }
 
-      const freshUsers = await apiService.fetchUsers();
-      setUsers(freshUsers);
+      await loadUsers();
       resetForm();
     } catch (err: any) {
       setError(err.message || "Failed to save personnel record.");
@@ -194,7 +179,7 @@ const UserManagement: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-6">
-          {users.map((u: any) => (
+          {users.map(u => (
             <div key={u.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl flex items-center gap-6 group hover:border-indigo-100 transition-all">
               <div className="flex items-center gap-4 flex-1">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${u.is_staff || u.is_superuser ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -335,34 +320,27 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dynamic Permissions from Django */}
+              {/* Permissions Logic Assignment */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Finance Security Clearances</label>
-                  <Settings2 size={12} className="text-slate-300" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {isLoading ? (
-                    <div className="col-span-full flex justify-center py-4"><Loader2 className="animate-spin text-slate-300" size={16} /></div>
-                  ) : availablePermissions.length === 0 ? (
-                    <p className="col-span-full text-center py-4 text-[10px] font-bold text-slate-300 uppercase italic">No system permissions found for 'finance'...</p>
-                  ) : availablePermissions.map(perm => (
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Security Clearances</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {AVAILABLE_PERMISSIONS.map(perm => (
                     <div 
-                      key={perm.codename}
-                      onClick={() => togglePermission(perm.codename)}
-                      className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                        formData.permissions.includes(perm.codename) 
-                        ? 'border-indigo-500 bg-indigo-50/50' 
-                        : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
+                      key={perm.id}
+                      onClick={() => togglePermission(perm.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        formData.permissions.includes(perm.id) 
+                        ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' 
+                        : 'border-slate-50 bg-slate-50/30 grayscale hover:grayscale-0 hover:border-slate-200'
                       }`}
                     >
                       <div className="min-w-0">
-                        <p className={`text-[10px] font-black uppercase tracking-tight ${formData.permissions.includes(perm.codename) ? 'text-indigo-600' : 'text-slate-500'}`}>
-                          {perm.name}
+                        <p className={`text-xs font-black uppercase tracking-tight ${formData.permissions.includes(perm.id) ? 'text-indigo-600' : 'text-slate-500'}`}>
+                          {perm.label}
                         </p>
-                        <p className="text-[8px] font-medium text-slate-400 truncate mt-0.5">{perm.app_label}</p>
+                        <p className="text-[9px] font-medium text-slate-400 truncate mt-0.5">{perm.description}</p>
                       </div>
-                      {formData.permissions.includes(perm.codename) && <CheckCircle2 size={14} className="text-indigo-600 shrink-0" />}
+                      {formData.permissions.includes(perm.id) && <CheckCircle2 size={16} className="text-indigo-600 shrink-0" />}
                     </div>
                   ))}
                 </div>

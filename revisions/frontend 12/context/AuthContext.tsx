@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!authToken) return false;
 
     try {
-      const [userResponse, userPermsResponse] = await Promise.all([
+      const [userResponse, userPerms] = await Promise.all([
         authService.getCurrentUser(authToken),
         authService.getPermissions(authToken)
       ]);
@@ -64,9 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const firstName = userData.first_name || userData.username || 'User';
       const lastName = userData.last_name || '';
 
-      // The backend returns { permissions: [...] } from user_permissions_view
-      const rawPerms = userPermsResponse?.permissions || [];
-      const normalizedPerms = normalizePermissions(rawPerms);
+      const normalizedPerms = normalizePermissions(userPerms);
 
       const enrichedUser: User = {
         ...userData,
@@ -88,11 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Explicitly clear legacy permission storage to ensure fresh API data
-    localStorage.removeItem('permissions');
-    localStorage.removeItem('user_permissions');
-    localStorage.removeItem('ff_permissions');
-
     if (initializationRef.current) return;
 
     const init = async () => {
@@ -117,8 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('ff_token');
-    localStorage.removeItem('permissions');
-    localStorage.removeItem('user_permissions');
     setToken(null);
     setUser(null);
     setPermissions({});

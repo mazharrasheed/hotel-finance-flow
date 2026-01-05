@@ -30,8 +30,6 @@ export interface User {
   website?: string;
   theme?: AppTheme;
   permissions: Permissions;
-  // user_permissions is the raw array of permissions from the Django backend used for user administration
-  user_permissions?: any[];
 }
 
 export interface Project {

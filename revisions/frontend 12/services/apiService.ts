@@ -161,19 +161,5 @@ export const apiService = {
       throw new Error(errorData.detail || errorData.username?.[0] || 'Failed to update user');
     }
     return res.json();
-  },
-
-  fetchAvailablePermissions: async (): Promise<any[]> => {
-    try {
-      // Matching the Django path provided: path('users/me/permissions/', user_permissions_view)
-      const res = await fetch(`${API_BASE}/users/me/permissions/`, { headers: getHeaders() });
-      if (!res.ok) throw new Error('Failed to fetch available permissions');
-      const data = await res.json();
-      // Django view returns: return Response({ "permissions": permission_objects, ... })
-      return data.permissions || [];
-    } catch (error) {
-      console.error('API fetchAvailablePermissions failed:', error);
-      return [];
-    }
   }
 }
