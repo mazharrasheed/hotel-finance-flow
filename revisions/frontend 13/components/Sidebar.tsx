@@ -5,7 +5,7 @@ import {
   X, Trash2, Edit2, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
   BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
-  Key, Sparkles, FolderPlus, Hotel, Building2, Building, Home, Activity
+  Key, Sparkles, FolderPlus, Hotel
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -24,9 +24,8 @@ interface SidebarProps {
 }
 
 const AVAILABLE_ICONS = [
-  'Briefcase', 'Target', 'Layers', 'PieChart', 'Key', 'Users', 
-  'Cpu', 'Shield', 'BarChart3', 'FileText', 'Award', 'Zap',
-  'Hotel', 'Building2', 'Building', 'Home', 'Activity', 'Sparkles'
+  'Briefcase', 'Target', 'Layers', 'PieChart', 'Key', 'Users', 'Cpu', 'Shield',
+  'BarChart3', 'FileText', 'Award', 'Zap'
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -80,12 +79,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     setShowForm(true);
   };
 
-  const handleIconSelect = (e: React.MouseEvent, iconName: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedIcon(iconName);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newName.trim()) {
@@ -106,13 +99,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-6 relative z-10">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2 text-indigo-600 font-bold text-xl cursor-pointer" onClick={handleDashboardClick}>
-            <LayoutDashboard size={24} /> Ali & Company
+            <LayoutDashboard size={24} /> FinanceFlow
           </div>
           <button onClick={onClose} className="p-2 lg:hidden text-slate-400"><X size={20} /></button>
         </div>
 
         {hasPerm('finance.add_project') && (
-          <button onClick={openAdd} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold transition-all shadow-md active:scale-95">
+          <button onClick={openAdd} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold transition-all shadow-md">
             <FolderPlus size={18} /> Add Project
           </button>
         )}
@@ -164,50 +157,15 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in duration-200">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">{editingProject ? 'Modify Project' : 'New Project'}</h3>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Project configuration</p>
-              </div>
-              <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors"><X size={24} /></button>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-800">{editingProject ? 'Edit Project' : 'New Project'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-2 text-slate-400"><X size={20} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entity Name</label>
-                <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="Project name" />
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-medium text-slate-700 transition-all h-24 resize-none" placeholder="Notes about this project..." />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Project Icon</label>
-                <div className="grid grid-cols-6 gap-3 max-h-40 overflow-y-auto p-1 custom-scrollbar">
-                  {AVAILABLE_ICONS.map(iconName => (
-                    <button
-                      key={iconName}
-                      type="button"
-                      onClick={(e) => handleIconSelect(e, iconName)}
-                      className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center group ${
-                        selectedIcon === iconName 
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-600 scale-105 shadow-md' 
-                          : 'border-transparent bg-slate-50 text-slate-400 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="pointer-events-none">
-                        <DynamicIcon name={iconName} size={18} />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98]">
-                {editingProject ? 'Update Project' : 'Add Project'}
-              </button>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" placeholder="Project name" />
+              <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border rounded-xl h-24" placeholder="Description" />
+              <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-sm">Save</button>
             </form>
           </div>
         </div>

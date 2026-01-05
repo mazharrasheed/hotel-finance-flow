@@ -51,14 +51,7 @@ const AppContent: React.FC = () => {
           apiService.fetchProjects(),
           apiService.fetchTransactions()
         ]);
-        
-        // Sort projects: newest first (assume higher ID or higher createdAt is newer)
-        const sortedProjects = [...apiProjects].sort((a, b) => {
-          if (a.createdAt && b.createdAt) return b.createdAt - a.createdAt;
-          return Number(b.id) - Number(a.id);
-        });
-        
-        setProjects(sortedProjects);
+        setProjects(apiProjects);
         setTransactions(apiTransactions);
       } catch (err) {
         console.error("Data fetch error:", err);
@@ -81,7 +74,6 @@ const AppContent: React.FC = () => {
   const handleAddProject = async (name: string, description: string, icon: string) => {
     try {
       const newProject = await apiService.createProject(name, description, icon);
-      // Ensure new project is added at the VERY top of the list
       setProjects(prev => [newProject, ...prev]);
       setActiveProjectId(newProject.id);
       setView('dashboard');

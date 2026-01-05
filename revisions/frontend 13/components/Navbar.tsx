@@ -34,16 +34,13 @@ const Navbar: React.FC<NavbarProps> = ({
         <Menu size={24} />
       </button>
 
-      <div className="flex-1 flex items-center gap-6">
-        <div className="flex flex-col">
-          <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight leading-none">Overview</h2>
-          <p className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] hidden sm:block mt-1 leading-none opacity-60">Ali & Company</p>
-        </div>
+      <div className="flex-1 flex items-center">
+        <h2 className="text-slate-800 font-black text-lg hidden sm:block tracking-tight">Overview</h2>
         
         {user?.permissions.canAddTransaction && (
           <button 
             onClick={onGeneralEntry}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 group"
+            className="ml-6 flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 group"
           >
             <PlusCircle size={16} className="group-hover:rotate-90 transition-transform" />
             <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">General Entry</span>

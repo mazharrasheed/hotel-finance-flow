@@ -47,8 +47,8 @@ const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-2xl text-white mb-4">
             <LayoutDashboard size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tighter">Ali & Company</h1>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-1">Project Management Portal</p>
+          <h1 className="text-2xl font-bold text-slate-800">FinanceFlow</h1>
+          <p className="text-slate-400 text-sm mt-1">Project Management Portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

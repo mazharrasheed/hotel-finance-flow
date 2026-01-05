@@ -13,8 +13,7 @@ interface ReportsViewProps {
 const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [filterDate, setFilterDate] = useState<string>('');
 
   const filteredTransactions = useMemo(() => {
     let list = [...transactions];
@@ -24,12 +23,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       list = list.filter(t => t.project === targetId);
     }
 
-    if (startDate) {
-      list = list.filter(t => t.date >= startDate);
-    }
-
-    if (endDate) {
-      list = list.filter(t => t.date <= endDate);
+    if (filterDate) {
+      list = list.filter(t => t.date === filterDate);
     }
 
     if (searchQuery.trim()) {
@@ -42,7 +37,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
     }
 
     return list;
-  }, [transactions, selectedProjectId, startDate, endDate, searchQuery]);
+  }, [transactions, selectedProjectId, filterDate, searchQuery]);
 
   const ledgerData = useMemo(() => {
     // 1. Create a stable chronological sort (Oldest to Newest)
@@ -132,49 +127,26 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Start Date */}
-          <div className="sm:w-48 relative group">
-            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
-            <input 
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full pl-10 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
-              placeholder="From Date"
-            />
-            {startDate && (
-              <button 
-                onClick={(e) => { e.preventDefault(); setStartDate(''); }} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
-              >
-                <X size={16} />
-              </button>
-            )}
-            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">From</div>
-          </div>
-
-          {/* End Date */}
-          <div className="sm:w-48 relative group">
-            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
-            <input 
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full pl-10 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
-              placeholder="Up To Date"
-            />
-            {endDate && (
-              <button 
-                onClick={(e) => { e.preventDefault(); setEndDate(''); }} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
-              >
-                <X size={16} />
-              </button>
-            )}
-            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">Up To</div>
-          </div>
-
           <div className="sm:w-56 relative group">
+            <CalendarIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
+            <input 
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full pl-12 pr-14 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer"
+            />
+            {filterDate && (
+              <button 
+                onClick={(e) => { e.preventDefault(); setFilterDate(''); }} 
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
+                title="Clear date filter"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+
+          <div className="sm:w-64 relative group">
             <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
             <select 
               value={selectedProjectId}
@@ -196,7 +168,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2 text-indigo-700 font-black text-base">
              <Hotel size={18} />
-             Ali & Company Audit Record {selectedProjectId !== 'all' ? ` - ${selectedProjectId === 'general' ? 'General Entries' : projects.find(p => p.id === selectedProjectId)?.name}` : ''}
+             FinanceFlow Audit Record {selectedProjectId !== 'all' ? ` - ${selectedProjectId === 'general' ? 'General Entries' : projects.find(p => p.id === selectedProjectId)?.name}` : ''}
            </div>
            <div className="text-right">
              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Financial Ledger</p>

@@ -2,26 +2,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, AppTheme } from '../types';
 import { Shield, Lock, Check, Loader2, UserCheck, Camera, Trash2, MapPin, Phone, Globe, Info, Edit3, Image as ImageIcon, ChevronDown, ChevronUp, Palette, CheckCircle2, XCircle } from 'lucide-react';
-import { apiService } from '../services/apiService';
 
 interface ProfileSettingsProps {
   activeUser: User;
   onUpdateUser: (user: User) => void;
 }
 
-interface DjangoPermission {
-  codename: string;
-  name: string;
-  app_label: string;
-}
+const PERMISSION_LABELS = [
+  { id: 'canAddTransaction', label: 'Add Transactions', description: 'Create new income/expense entries' },
+  { id: 'canEditTransaction', label: 'Edit Transactions', description: 'Modify existing financial records' },
+  { id: 'canDeleteTransaction', label: 'Delete Transactions', description: 'Remove records from the system' },
+  { id: 'canViewReports', label: 'View Reports', description: 'Access ledger and financial analysis' },
+  { id: 'canTakeBackup', label: 'System Backup', description: 'Export data to CSV format' },
+];
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateUser }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [availablePermissions, setAvailablePermissions] = useState<DjangoPermission[]>([]);
-  const [isLoadingPerms, setIsLoadingPerms] = useState(true);
   
   const [profileData, setProfileData] = useState({
     name: activeUser.name || '',
@@ -45,23 +44,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
       phoneNumber: activeUser.phoneNumber || '',
       website: activeUser.website || '',
     });
-
-    const fetchPerms = async () => {
-      try {
-        const perms = await apiService.fetchAvailablePermissions();
-        // Strict filter for 'finance' app label as per project requirements
-        const financePerms = Array.isArray(perms) 
-          ? perms.filter((p: any) => p && p.app_label && p.app_label.toLowerCase() === 'finance')
-          : [];
-        setAvailablePermissions(financePerms);
-      } catch (err) {
-        console.error("Failed to load permissions list:", err);
-      } finally {
-        setIsLoadingPerms(false);
-      }
-    };
-
-    fetchPerms();
   }, [activeUser]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
@@ -89,6 +71,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
   };
 
   const updateUserProfile = (updates: Partial<User>) => {
+    // Note: Since we are using an API-driven auth context, local storage persistence 
+    // here is a secondary fallback. The main update should ideally go through an API call.
     const updatedUser = { ...activeUser, ...updates };
     onUpdateUser(updatedUser);
   };
@@ -115,6 +99,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
 
     try {
       await new Promise(resolve => setTimeout(resolve, 600));
+      // Password change logic would typically hit an API endpoint
       setMessage({ type: 'success', text: 'Password update request submitted!' });
       setOldPassword(''); setNewPassword(''); setConfirmPassword('');
       setIsChangingPassword(false);
@@ -215,31 +200,26 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ activeUser, onUpdateU
             </div>
           </div>
 
-          {/* Security Clearances Section - Now Dynamic */}
+          {/* Security Clearances Section */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
             <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
                <Shield size={16} className="text-indigo-600" /> Security Clearances
             </h3>
             <div className="space-y-3">
-              {isLoadingPerms ? (
-                <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-slate-300" /></div>
-              ) : availablePermissions.length === 0 ? (
-                <p className="text-center py-4 text-[10px] font-bold text-slate-300 uppercase italic">No system permissions found...</p>
-              ) : availablePermissions.map(perm => {
-                // Check if user has permission. handles codename and app_label.codename formats.
-                const hasPermission = activeUser.is_superuser || activeUser.permissions?.[perm.codename] || activeUser.permissions?.[`${perm.app_label}.${perm.codename}`];
+              {PERMISSION_LABELS.map(perm => {
+                const hasPermission = activeUser.permissions?.[perm.id] || activeUser.is_superuser;
                 return (
                   <div 
-                    key={perm.codename} 
+                    key={perm.id} 
                     className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${
                       hasPermission ? 'bg-emerald-50/30 border-emerald-100' : 'bg-slate-50/50 border-slate-100 opacity-60'
                     }`}
                   >
                     <div className="min-w-0">
                       <p className={`text-[10px] font-black uppercase tracking-tight ${hasPermission ? 'text-emerald-700' : 'text-slate-400'}`}>
-                        {perm.name}
+                        {perm.label}
                       </p>
-                      <p className="text-[9px] font-medium text-slate-400 truncate leading-none mt-1">{perm.app_label}</p>
+                      <p className="text-[9px] font-medium text-slate-400 truncate leading-none mt-1">{perm.description}</p>
                     </div>
                     {hasPermission ? (
                       <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />

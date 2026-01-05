@@ -15,34 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include,re_path
-from django.views.generic import TemplateView
-from rest_framework.authtoken.views import obtain_auth_token
-from django.views.decorators.csrf import csrf_exempt
-from django.views.static import serve
-from django.conf import settings
-
-# urlpatterns = [
-#     path('admin/', admin.site.urls),
-#     # path('api-token-auth/', csrf_exempt(obtain_auth_token)),
-#     path('api/', include('finance.urls')),
-#     path('api-auth/', include('rest_framework.urls')),
-#     re_path(r'^.*$', serve, kwargs={
-#         'path': 'index.html',
-#         'document_root': settings.STATIC_ROOT
-#     }),
-# ]
-
-
-# urlpatterns += [
-#     path('api-token-auth/', obtain_auth_token),
-#      # React frontend
-#     re_path(r'^$', TemplateView.as_view(template_name='index.html')),
-#     re_path(r'^(?!admin/).*$', TemplateView.as_view(template_name='index.html')),
-# ]
-
-
-from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework.authtoken.views import obtain_auth_token
 from django.views.decorators.csrf import csrf_exempt
