@@ -3,14 +3,14 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 
-class CustomPermissions(models.Model):
-    class Meta:
-        permissions = [
-            ('view_dashboard', 'Can view dashboard'),
-            ("view_balance_sheet", "Can view balance sheet"),
-            ("view_reports", "Can view reports"),
-            # Add more custom permissions here
-        ]
+# class CustomPermissions(models.Model):
+#     class Meta:
+#         permissions = [
+#             ('view_dashboard', 'Can view dashboard'),
+#             ("view_balance_sheet", "Can view balance sheet"),
+#             ("view_reports", "Can view reports"),
+#             # Add more custom permissions here
+#         ]
 
 
 class SoftDeleteManager(models.Manager):
@@ -43,8 +43,18 @@ class Project(models.Model):
     color = models.CharField(max_length=50) # Stores hsl or hex
     icon = models.CharField(max_length=50, default='Briefcase')
 
+    class Meta:
+        permissions = [
+            ('view_dashboard', 'Can view dashboard'),
+            ("view_balance_sheet", "Can view balance sheet"),
+            ("view_reports", "Can view reports"),
+            # Add more custom permissions here
+        ]
+
     def __str__(self):
         return self.name
+    
+    
 
 class Transaction(models.Model):
     TYPES = (
