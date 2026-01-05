@@ -45,6 +45,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
         )
         return user
 
+from django.contrib.auth.models import Permission
 
 class UserSerializer(serializers.ModelSerializer):
     permissions = serializers.ListField(
@@ -69,6 +70,8 @@ class UserSerializer(serializers.ModelSerializer):
             "permissions",
             "permission_details",
             "group_details",
+            "first_name",
+            "last_name",
         ]
         extra_kwargs = {
             "password": {"write_only": True, "required": False}   # ✓ Make optional
@@ -88,21 +91,34 @@ class UserSerializer(serializers.ModelSerializer):
             for g in obj.groups.all()
     ]
 
+
+
+
     def get_permission_details(self, obj):
-        perms = obj.get_all_permissions()
-        output = []
-        for p in perms:
-            app_label, codename = p.split(".")
-            try:
-                perm_obj = Permission.objects.get(codename=codename)
-                output.append({
-                    "codename": perm_obj.codename,
-                    "name": perm_obj.name,
+        permissions = []
+
+        for perm in obj.get_all_permissions():
+            app_label, codename = perm.split(".")
+
+            perm_obj = (
+                Permission.objects
+                .filter(
+                    codename=codename,
+                    content_type__app_label=app_label
+                )
+                .first()   # 👈 KEY FIX
+            )
+
+            if perm_obj:
+                permissions.append({
                     "app_label": app_label,
+                    "codename": codename,
+                    "name": perm_obj.name,
                 })
-            except Permission.DoesNotExist:
-                pass
-        return output
+
+        return permissions
+
+
 
     def create(self, validated_data):
         permissions = validated_data.pop("permissions", [])
