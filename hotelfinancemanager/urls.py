@@ -22,21 +22,47 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.static import serve
 from django.conf import settings
 
+# urlpatterns = [
+#     path('admin/', admin.site.urls),
+#     # path('api-token-auth/', csrf_exempt(obtain_auth_token)),
+#     path('api/', include('finance.urls')),
+#     path('api-auth/', include('rest_framework.urls')),
+#     re_path(r'^.*$', serve, kwargs={
+#         'path': 'index.html',
+#         'document_root': settings.STATIC_ROOT
+#     }),
+# ]
+
+
+# urlpatterns += [
+#     path('api-token-auth/', obtain_auth_token),
+#      # React frontend
+#     re_path(r'^$', TemplateView.as_view(template_name='index.html')),
+#     re_path(r'^(?!admin/).*$', TemplateView.as_view(template_name='index.html')),
+# ]
+
+
+from django.contrib import admin
+from django.urls import path, include, re_path
+from rest_framework.authtoken.views import obtain_auth_token
+from django.views.decorators.csrf import csrf_exempt
+from django.views.static import serve
+from django.conf import settings
+
 urlpatterns = [
+    # Admin
     path('admin/', admin.site.urls),
-    # path('api-token-auth/', csrf_exempt(obtain_auth_token)),
+
+    # API routes
     path('api/', include('finance.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    re_path(r'^.*$', serve, kwargs={
+
+    # Token auth — CSRF exempt
+    path('api-token-auth/', csrf_exempt(obtain_auth_token)),
+
+    # Catch-all SPA route (after all API routes!)
+    re_path(r'^(?!api/|api-auth/|api-token-auth/|admin/).*$', serve, kwargs={
         'path': 'index.html',
         'document_root': settings.STATIC_ROOT
     }),
-]
-
-
-urlpatterns += [
-    path('api-token-auth/', obtain_auth_token),
-     # React frontend
-    re_path(r'^$', TemplateView.as_view(template_name='index.html')),
-    re_path(r'^(?!admin/).*$', TemplateView.as_view(template_name='index.html')),
 ]

@@ -167,6 +167,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "https://projectsfinanceflow.pythonanywhere.com",
     "http://localhost:8081",
+    "http://localhost:3000",
     "http://127.0.0.1:8081",
    
 ]
@@ -186,7 +187,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8000",
     "https://projectsfinanceflow.pythonanywhere.com",
-    'http://localhost:8081',
+    
 ]
 
 # SECURITY WARNING: don't run with debug turned on in production!
