@@ -155,29 +155,19 @@ REST_FRAMEWORK = {
 }
 
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # React's dev server
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:5174",  # React's dev server
-    "http://127.0.0.1:5174",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "https://projectsfinanceflow.pythonanywhere.com",
-    "http://localhost:8081",
     "http://localhost:3000",
-    "http://127.0.0.1:8081",
-   
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "https://projectsfinanceflow.pythonanywhere.com",
 ]
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "projectsfinanceflow.pythonanywhere.com",
-    '127.0.2.2'
-]
 
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -185,7 +175,8 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # Required for local + prod
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://localhost:3001",
     "https://projectsfinanceflow.pythonanywhere.com",
     
 ]

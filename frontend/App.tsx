@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Project, Transaction, AppTheme } from './types';
+import { User, Project, Transaction, AppTheme, TransactionType } from './types';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import CalendarView from './components/CalendarView';
@@ -12,47 +12,54 @@ import ProjectHeader from './components/ProjectHeader';
 import UserManagement from './components/UserManagement';
 import ProfileSettings from './components/ProfileSettings';
 import ReportsView from './components/ReportsView';
-import { Loader2, AlertTriangle, XCircle, CheckCircle2, X } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { apiService } from './services/apiService';
 import { format } from 'date-fns';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 const AppContent: React.FC = () => {
-  const { user, token, isLoading: authLoading, logout, hasPerm, permissions, updateUser } = useAuth();
+  const { user, token, isLoading: authLoading, logout, permissions, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isInitializing, setIsInitializing] = useState(true);
-  const [view, setView] = useState<'dashboard' | 'users' | 'profile' | 'reports'>('dashboard');
-  
   const [projects, setProjects] = useState<Project[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false);
-  const [modalType, setModalType] = useState<'income' | 'expense' | 'investment'>('income');
+  const [modalType, setModalType] = useState<TransactionType>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [isGeneralEntry, setIsGeneralEntry] = useState(false);
 
   // Project Deletion states
   const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
 
   const theme: AppTheme = user?.theme || 'slate';
 
-  useEffect(() => {
-    // Reset all data states immediately when token changes (login/logout/switch)
-    // to prevent stale data from previous users appearing.
-    setProjects([]);
-    setTransactions([]);
-    setActiveProjectId(null);
-    setView('dashboard');
-    setIsSidebarOpen(false);
+  // Extract projectId from URL manually as useParams() only works inside components rendered by Route
+  const activeProjectId = useMemo(() => {
+    const match = location.pathname.match(/\/project\/([^/]+)/);
+    return match ? String(match[1]) : null;
+  }, [location.pathname]);
 
+  // Determine current "view" based on pathname
+  const activeView = useMemo(() => {
+    if (location.pathname.startsWith('/users')) return 'users';
+    if (location.pathname.startsWith('/profile')) return 'profile';
+    if (location.pathname.startsWith('/reports')) return 'reports';
+    return 'dashboard';
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (!token || authLoading) {
-      setIsInitializing(false);
+      if (!authLoading && !token) {
+        setIsInitializing(false);
+      }
       return;
     }
 
@@ -72,7 +79,6 @@ const AppContent: React.FC = () => {
           canViewTransactions ? apiService.fetchTransactions() : Promise.resolve([])
         ]);
         
-        // Sort projects: newest first
         const sortedProjects = [...apiProjects].sort((a, b) => {
           if (a.createdAt && b.createdAt) return b.createdAt - a.createdAt;
           return Number(b.id) - Number(a.id);
@@ -91,13 +97,15 @@ const AppContent: React.FC = () => {
   }, [token, authLoading, permissions.canViewProjects, permissions.canViewTransactions]);
 
   const activeProject = useMemo(() => 
-    projects.find(p => p.id === activeProjectId) || null
+    projects.find(p => String(p.id) === activeProjectId) || null
   , [projects, activeProjectId]);
 
   const globalBalance = useMemo(() => {
     return transactions.reduce((acc, t) => {
-      if (t.type === 'investment') return acc; // Investment doesn't affect net profit/loss usually, but let's stick to standard flow
-      return acc + (t.type === 'income' ? t.amount : -t.amount);
+      if (t.type === 'investment') return acc;
+      // Treating 'general' and 'income' as positive, 'expense' as negative
+      const isOutflow = t.type === 'expense';
+      return acc + (isOutflow ? -t.amount : t.amount);
     }, 0);
   }, [transactions]);
 
@@ -109,8 +117,7 @@ const AppContent: React.FC = () => {
     try {
       const newProject = await apiService.createProject(name, description, icon);
       setProjects(prev => [newProject, ...prev]);
-      setActiveProjectId(newProject.id);
-      setView('dashboard');
+      navigate(`/project/${newProject.id}`);
     } catch (err) {
       alert('Error creating project. Check API connection.');
     }
@@ -119,7 +126,7 @@ const AppContent: React.FC = () => {
   const handleUpdateProject = async (id: string, name: string, description: string, icon: string) => {
     try {
       const updated = await apiService.updateProject(id, name, description, icon);
-      setProjects(prev => prev.map(p => p.id === id ? updated : p));
+      setProjects(prev => prev.map(p => String(p.id) === String(id) ? updated : p));
     } catch (err) {
       alert('Error updating project.');
     }
@@ -128,31 +135,28 @@ const AppContent: React.FC = () => {
   const confirmDeleteProject = async () => {
     if (!projectToDeleteId) return;
     setIsDeletingProject(true);
-    setDeleteError(null);
     try {
       await apiService.deleteProject(projectToDeleteId);
-      setProjects(prev => prev.filter(p => p.id !== projectToDeleteId));
-      setTransactions(prev => prev.filter(t => t.project !== projectToDeleteId));
-      if (activeProjectId === projectToDeleteId) setActiveProjectId(null);
+      setProjects(prev => prev.filter(p => String(p.id) !== String(projectToDeleteId)));
+      setTransactions(prev => prev.filter(t => String(t.project) !== String(projectToDeleteId)));
+      if (activeProjectId === String(projectToDeleteId)) navigate('/');
       setProjectToDeleteId(null);
     } catch (err) {
-      setDeleteError('Cloud synchronization failed.');
+      alert('Cloud synchronization failed.');
     } finally {
       setIsDeletingProject(false);
     }
   };
 
-  const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project' | 'general'>) => {
+  const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project'>) => {
     const payload: any = {
       ...data,
-      general: isGeneralEntry,
-      project: isGeneralEntry ? null : activeProjectId
+      project: data.type === 'general' ? null : activeProjectId
     };
     try {
       const newTransaction = await apiService.createTransaction(payload);
       setTransactions(prev => [...prev, newTransaction]);
       setIsModalOpen(false);
-      setIsGeneralEntry(false);
     } catch (err) {
       alert('Error saving transaction.');
     }
@@ -180,27 +184,25 @@ const AppContent: React.FC = () => {
     if (transactions.length === 0 && projects.length === 0) return;
     const headers = ["Project", "Date", "Type", "Amount", "Note"];
     const rows = transactions.map(t => {
-      const p = projects.find(proj => proj.id === t.project);
-      return [t.general ? 'General' : (p?.name || "Archived"), t.date, t.type.toUpperCase(), t.amount, t.note];
+      const p = projects.find(proj => String(proj.id) === String(t.project));
+      return [t.type === 'general' ? 'General' : (p?.name || "Archived"), t.date, t.type.toUpperCase(), t.amount, t.note];
     });
     const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `finance_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `finance_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
   };
 
   const openGeneralEntry = () => {
-    setIsGeneralEntry(true);
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
-    setModalType('income');
+    setModalType('general');
     setIsModalOpen(true);
   };
 
-  const openEntryModal = (type: 'income' | 'expense' | 'investment', date: string) => {
-    setIsGeneralEntry(false);
+  const openEntryModal = (type: TransactionType, date: string) => {
     setModalType(type);
     setSelectedDate(date);
     setIsModalOpen(true);
@@ -222,17 +224,17 @@ const AppContent: React.FC = () => {
         projects={projects} 
         activeProjectId={activeProjectId} 
         onSelectProject={(id) => { 
-          setActiveProjectId(id); 
           setIsSidebarOpen(false); 
-          if (id) setView('dashboard');
+          if (id) navigate(`/project/${id}`);
+          else navigate('/');
         }} 
         onAddProject={handleAddProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={(id) => setProjectToDeleteId(id)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        activeView={view}
-        onSetView={setView}
+        activeView={activeView}
+        onSetView={(view) => navigate(view === 'dashboard' ? '/' : `/${view}`)}
       />
       
       {isSidebarOpen && (
@@ -247,49 +249,63 @@ const AppContent: React.FC = () => {
           onExport={handleExportCSV}
           globalBalance={globalBalance}
           globalInvestment={globalInvestment}
-          onSetView={setView}
+          onSetView={(view) => navigate(view === 'dashboard' ? '/' : `/${view}`)}
           onGeneralEntry={openGeneralEntry}
         />
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-          {view === 'users' && <UserManagement />}
-          {view === 'profile' && <ProfileSettings activeUser={user} onUpdateUser={updateUser} />}
-          {view === 'reports' && <ReportsView transactions={transactions} projects={projects} />}
-          
-          {view === 'dashboard' && (
-            <div className="max-w-7xl mx-auto h-full">
-              {activeProject && permissions.canViewProjects && permissions.canViewTransactions ? (
-                <div className="space-y-6">
-                  <ProjectHeader 
-                    project={activeProject} 
-                    transactions={transactions.filter(t => t.project === activeProject.id)}
-                    onAddInvestment={() => openEntryModal('investment', format(new Date(), 'yyyy-MM-dd'))}
-                  />
-                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <CalendarView 
-                      projectId={activeProjectId!}
-                      transactions={transactions.filter(t => t.project === activeProjectId)}
-                      onAddTransaction={openEntryModal}
-                      onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
-                      onDeleteTransaction={handleDeleteTransaction}
-                      activeProject={activeProject}
-                      user={user}
+          <Routes>
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/profile" element={<ProfileSettings activeUser={user} onUpdateUser={updateUser} />} />
+            <Route path="/reports" element={<ReportsView transactions={transactions} projects={projects} />} />
+            <Route path="/project/:projectId" element={
+              <div className="max-w-7xl mx-auto h-full space-y-6">
+                {activeProject ? (
+                  <>
+                    <ProjectHeader 
+                      project={activeProject} 
+                      transactions={transactions.filter(t => String(t.project) === activeProjectId)}
+                      onAddInvestment={() => openEntryModal('investment', format(new Date(), 'yyyy-MM-dd'))}
                     />
-                  </div>
-                </div>
-              ) : (
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                      <CalendarView 
+                        projectId={activeProjectId!}
+                        transactions={transactions.filter(t => String(t.project) === activeProjectId)}
+                        onAddTransaction={openEntryModal}
+                        onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
+                        onDeleteTransaction={handleDeleteTransaction}
+                        activeProject={activeProject}
+                        user={user}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState 
+                    onOpenSidebar={() => setIsSidebarOpen(true)} 
+                    globalBalance={globalBalance}
+                    projectCount={projects.length}
+                    projects={projects}
+                    transactions={transactions}
+                    onSelectProject={(id) => navigate(`/project/${id}`)}
+                    theme={theme}
+                  />
+                )}
+              </div>
+            } />
+            <Route path="/" element={
+              <div className="max-w-7xl mx-auto h-full">
                 <EmptyState 
                   onOpenSidebar={() => setIsSidebarOpen(true)} 
                   globalBalance={globalBalance}
                   projectCount={projects.length}
                   projects={projects}
                   transactions={transactions}
-                  onSelectProject={(id) => { setActiveProjectId(id); setView('dashboard'); }}
+                  onSelectProject={(id) => navigate(`/project/${id}`)}
                   theme={theme}
                 />
-              )}
-            </div>
-          )}
+              </div>
+            } />
+          </Routes>
         </div>
       </main>
 
@@ -313,10 +329,10 @@ const AppContent: React.FC = () => {
 
       {isModalOpen && (
         <TransactionModal 
-          key={`${modalType}-${selectedDate}-${isGeneralEntry}`}
+          key={`${modalType}-${selectedDate}`}
           type={modalType} 
           date={selectedDate!} 
-          onClose={() => { setIsModalOpen(false); setIsGeneralEntry(false); }} 
+          onClose={() => { setIsModalOpen(false); }} 
           onSubmit={handleAddTransaction} 
         />
       )}
@@ -324,7 +340,7 @@ const AppContent: React.FC = () => {
       {isDayDetailOpen && selectedDate && (
         <DayDetailModal 
           date={selectedDate} 
-          transactions={transactions.filter(t => t.project === activeProjectId && t.date === selectedDate)} 
+          transactions={transactions.filter(t => String(t.project) === activeProjectId && t.date === selectedDate)} 
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
@@ -338,7 +354,9 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => (
   <AuthProvider>
-    <AppContent />
+    <Router>
+      <AppContent />
+    </Router>
   </AuthProvider>
 );
 

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { X, Banknote, FileText, TrendingUp, TrendingDown, Calendar as CalendarIcon, Landmark } from 'lucide-react';
+import { X, Banknote, FileText, TrendingUp, TrendingDown, Calendar as CalendarIcon, Landmark, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TransactionModalProps {
@@ -32,20 +32,25 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
   const getAccentColor = () => {
     if (currentType === 'income') return 'text-emerald-600';
     if (currentType === 'expense') return 'text-rose-600';
+    if (currentType === 'general') return 'text-indigo-600';
     return 'text-violet-600';
   };
 
   const getBorderColor = () => {
     if (currentType === 'income') return 'focus:border-emerald-500';
     if (currentType === 'expense') return 'focus:border-rose-500';
+    if (currentType === 'general') return 'focus:border-indigo-500';
     return 'focus:border-violet-500';
   };
 
   const getBtnBg = () => {
     if (currentType === 'income') return 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200/50';
     if (currentType === 'expense') return 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50';
+    if (currentType === 'general') return 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200/50';
     return 'bg-violet-600 hover:bg-violet-700 shadow-violet-200/50';
   };
+
+  const isProjectTransaction = currentType === 'income' || currentType === 'expense';
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -62,8 +67,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
           </button>
         </div>
 
-        {/* Type Toggle - Modified to hide inappropriate options */}
-        {currentType !== 'investment' && (
+        {/* Type Toggle for Project Entries */}
+        {isProjectTransaction && (
           <div className="flex p-1 bg-slate-100 rounded-2xl mb-6">
             <button
               type="button"
@@ -112,8 +117,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
           <div className="relative group">
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Amount (PKR)</label>
             <div className="relative">
-              <span className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${currentType === 'income' ? 'text-emerald-400' : currentType === 'expense' ? 'text-rose-400' : 'text-violet-400'}`}>
-                {currentType === 'investment' ? <Landmark size={24} /> : <Banknote size={24} />}
+              <span className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${
+                currentType === 'income' ? 'text-emerald-400' : 
+                currentType === 'expense' ? 'text-rose-400' : 
+                currentType === 'general' ? 'text-indigo-400' : 'text-violet-400'
+              }`}>
+                {currentType === 'investment' ? <Landmark size={24} /> : 
+                 currentType === 'general' ? <Sparkles size={24} /> : <Banknote size={24} />}
               </span>
               <input
                 autoFocus

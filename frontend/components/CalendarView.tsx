@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Transaction, Project, User } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Transaction, Project, User, TransactionType } from '../types';
 import { 
   format, 
   endOfMonth, 
@@ -11,8 +11,7 @@ import {
   endOfWeek,
   isValid
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, BarChart4, Search, X, Calendar as CalendarIcon, FileText, Landmark } from 'lucide-react';
-import { getFinancialInsights } from '../services/geminiService';
+import { ChevronLeft, ChevronRight, Plus, Search, X, Calendar as CalendarIcon } from 'lucide-react';
 
 const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
 const subMonths = (date: Date, amount: number) => addMonths(date, -amount);
@@ -28,7 +27,7 @@ const startOfWeek = (date: Date) => {
 interface CalendarViewProps {
   projectId: string;
   transactions: Transaction[];
-  onAddTransaction: (type: 'income' | 'expense' | 'investment', date: string) => void;
+  onAddTransaction: (type: TransactionType, date: string) => void;
   onOpenDayDetail: (date: string) => void;
   onDeleteTransaction: (id: string) => void;
   activeProject: Project;
@@ -45,8 +44,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   user
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [insight, setInsight] = useState<string | null>(null);
-  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const monthStart = startOfMonth(currentMonth);
@@ -59,48 +56,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     end: endDate,
   });
 
-  const generateInsight = async () => {
-    setIsLoadingInsight(true);
-    const text = await getFinancialInsights(activeProject, transactions);
-    setInsight(text || null);
-    setIsLoadingInsight(false);
-  };
-
-  useEffect(() => {
-    setInsight(null);
-  }, [projectId, currentMonth]);
-
   const statsByDate = useMemo(() => {
-    const stats: Record<string, { income: number; expense: number; investment: number; transactions: Transaction[] }> = {};
+    const stats: Record<string, { income: number; expense: number; investment: number; general: number; transactions: Transaction[] }> = {};
     
     transactions.forEach(t => {
       const dateKey = format(new Date(t.date), 'yyyy-MM-dd');
       if (!stats[dateKey]) {
-        stats[dateKey] = { income: 0, expense: 0, investment: 0, transactions: [] };
+        stats[dateKey] = { income: 0, expense: 0, investment: 0, general: 0, transactions: [] };
       }
       if (t.type === 'income') stats[dateKey].income += t.amount;
       else if (t.type === 'expense') stats[dateKey].expense += t.amount;
       else if (t.type === 'investment') stats[dateKey].investment += t.amount;
+      else if (t.type === 'general') stats[dateKey].general += t.amount;
       stats[dateKey].transactions.push(t);
     });
     
     return stats;
   }, [transactions]);
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
-    
-    return transactions.filter(t => {
-      const tDate = new Date(t.date);
-      if (!isValid(tDate)) return false;
-
-      const noteMatch = t.note.toLowerCase().includes(query);
-      const isoMatch = format(tDate, 'yyyy-MM-dd').includes(query);
-      
-      return noteMatch || isoMatch;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, searchQuery]);
 
   return (
     <div className="flex flex-col w-full overflow-hidden print:hidden">
@@ -150,11 +122,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </button>
             )}
           </div>
-
         </div>
       </div>
 
-      
       <div className="p-2 md:p-6 overflow-x-auto">
         <div className="min-w-[800px] lg:min-w-0">
           <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -166,8 +136,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
             {calendarDays.map((day, idx) => {
               const dateKey = format(day, 'yyyy-MM-dd');
-              const dayStats = statsByDate[dateKey] || { income: 0, expense: 0, investment: 0, transactions: [] };
-              const opBalance = dayStats.income - dayStats.expense;
+              const dayStats = statsByDate[dateKey] || { income: 0, expense: 0, investment: 0, general: 0, transactions: [] };
+              const opBalance = (dayStats.income + dayStats.general) - dayStats.expense;
               const isCurrentMonth = isSameMonth(day, monthStart);
               const isDayToday = isToday(day);
 
@@ -207,6 +177,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         className={`text-[9px] px-1.5 py-0.5 rounded-md flex justify-between items-center ${
                           t.type === 'income' ? 'bg-emerald-50 text-emerald-700' : 
                           t.type === 'expense' ? 'bg-rose-50 text-rose-700' : 
+                          t.type === 'general' ? 'bg-indigo-50 text-indigo-700' :
                           'bg-violet-50 text-violet-700'
                         }`}
                       >
@@ -218,10 +189,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                   <div className="mt-auto pt-2 border-t border-slate-50">
                     <div className="flex flex-col gap-0.5">
-                       {dayStats.investment > 0 && (
+                       {(dayStats.investment > 0 || dayStats.general > 0) && (
                          <div className="flex justify-between items-center">
-                            <span className="text-[8px] font-black text-violet-400 uppercase tracking-tighter">Invest</span>
-                            <span className="text-[9px] font-black text-violet-600 leading-none">+{dayStats.investment}</span>
+                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Inflows</span>
+                            <span className="text-[9px] font-black text-indigo-600 leading-none">+{dayStats.investment + dayStats.general}</span>
                          </div>
                        )}
                        <div className="flex justify-between items-center">
