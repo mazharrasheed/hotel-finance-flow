@@ -60,6 +60,7 @@ class Transaction(models.Model):
     TYPES = (
         ('income', 'Income'),
         ('expense', 'Expense'),
+        ('investment', 'Investment'),
     )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(Project, related_name='transactions', on_delete=models.RESTRICT,null=True, blank=True)
