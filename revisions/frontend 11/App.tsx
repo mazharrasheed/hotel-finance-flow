@@ -12,51 +12,9 @@ import ProjectHeader from './components/ProjectHeader';
 import UserManagement from './components/UserManagement';
 import ProfileSettings from './components/ProfileSettings';
 import ReportsView from './components/ReportsView';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, XCircle, CheckCircle2, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { apiService } from './services/apiService';
-import {
-  Briefcase,
-  Target,
-  Layers,
-  PieChart,
-  Key,
-  Users,
-  Cpu,
-  Shield,
-  BarChart3,
-  FileText,
-  Award,
-  Zap,
-} from 'lucide-react';
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  Briefcase,
-  Target,
-  Layers,
-  PieChart,
-  Key,
-  Users,
-  Cpu,
-  Shield,
-  BarChart3,
-  FileText,
-  Award,
-  Zap,
-};
-
-export const DynamicIcon = ({
-  name,
-  size = 16,
-  ...props
-}: {
-  name: string;
-  size?: number;
-}) => {
-  const Icon = ICON_MAP[name] || Briefcase;
-  return <Icon size={size} {...props} />;
-};
-
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -73,6 +31,11 @@ const App: React.FC = () => {
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false);
   const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // Project Deletion states
+  const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
 
   const theme: AppTheme = user?.theme || 'indigo';
 
@@ -153,15 +116,21 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    if (!confirm("Permanently remove this project?")) return;
+  const confirmDeleteProject = async () => {
+    if (!projectToDeleteId) return;
+    setIsDeletingProject(true);
+    setDeleteError(null);
+    
     try {
-      await apiService.deleteProject(id);
-      setProjects(prev => prev.filter(p => p.id !== id));
-      setTransactions(prev => prev.filter(t => t.project !== id));
-      if (activeProjectId === id) setActiveProjectId(null);
+      await apiService.deleteProject(projectToDeleteId);
+      setProjects(prev => prev.filter(p => p.id !== projectToDeleteId));
+      setTransactions(prev => prev.filter(t => t.project !== projectToDeleteId));
+      if (activeProjectId === projectToDeleteId) setActiveProjectId(null);
+      setProjectToDeleteId(null);
     } catch (err) {
-      alert('Error deleting project.');
+      setDeleteError('Cloud synchronization failed. The project could not be removed from the main ledger.');
+    } finally {
+      setIsDeletingProject(false);
     }
   };
 
@@ -237,7 +206,7 @@ const App: React.FC = () => {
         }} 
         onAddProject={handleAddProject}
         onUpdateProject={handleUpdateProject}
-        onDeleteProject={handleDeleteProject}
+        onDeleteProject={(id) => setProjectToDeleteId(id)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         user={user}
@@ -300,6 +269,67 @@ const App: React.FC = () => {
         </div>
       </main>
 
+      {/* Project Deletion Confirmation Modal */}
+      {projectToDeleteId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-slate-100 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4">
+                <button onClick={() => setProjectToDeleteId(null)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
+                   <X size={20} />
+                </button>
+             </div>
+             <div className="text-center">
+                <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                   <AlertTriangle size={40} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Delete Project?</h3>
+                <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+                   This will permanently remove <span className="text-slate-800 font-black">"{projects.find(p => p.id === projectToDeleteId)?.name}"</span> and all its associated financial history. This action cannot be undone.
+                </p>
+                <div className="flex flex-col gap-3">
+                   <button 
+                     disabled={isDeletingProject}
+                     onClick={confirmDeleteProject}
+                     className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-rose-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                   >
+                     {isDeletingProject ? <Loader2 size={20} className="animate-spin" /> : "Confirm Deletion"}
+                   </button>
+                   <button 
+                     disabled={isDeletingProject}
+                     onClick={() => setProjectToDeleteId(null)}
+                     className="w-full py-4 text-slate-400 hover:text-slate-600 font-black text-sm uppercase tracking-widest transition-all"
+                   >
+                     Keep Project
+                   </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Deletion Error Modal */}
+      {deleteError && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in zoom-in duration-200">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-slate-100">
+             <div className="text-center">
+                <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                   <XCircle size={40} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Sync Error</h3>
+                <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+                   {deleteError}
+                </p>
+                <button 
+                  onClick={() => setDeleteError(null)}
+                  className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition-all"
+                >
+                  Dismiss
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <TransactionModal 
           type={modalType} 
@@ -329,9 +359,9 @@ const App: React.FC = () => {
   );
 };
 
-// export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
-//   const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
-//   return <Icon size={size} className={className} />;
-// };
+export const DynamicIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
+  const Icon = (LucideIcons as any)[name] || LucideIcons.Briefcase;
+  return <Icon size={size} className={className} />;
+};
 
 export default App;

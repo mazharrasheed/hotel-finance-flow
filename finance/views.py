@@ -31,6 +31,30 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import ProtectedError
 import json
 
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.views.decorators.csrf import csrf_exempt
+
+class CustomAuthToken(ObtainAuthToken):
+    permission_classes = [AllowAny]  # no auth needed
+
+    @csrf_exempt
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})
+
+
 
 
 reset_tokens = {}  # simple in-memory store; use DB in production
