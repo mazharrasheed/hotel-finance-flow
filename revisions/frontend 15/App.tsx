@@ -31,7 +31,7 @@ const AppContent: React.FC = () => {
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false);
-  const [modalType, setModalType] = useState<'income' | 'expense' | 'investment'>('income');
+  const [modalType, setModalType] = useState<'income' | 'expense'>('income');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isGeneralEntry, setIsGeneralEntry] = useState(false);
 
@@ -95,14 +95,7 @@ const AppContent: React.FC = () => {
   , [projects, activeProjectId]);
 
   const globalBalance = useMemo(() => {
-    return transactions.reduce((acc, t) => {
-      if (t.type === 'investment') return acc; // Investment doesn't affect net profit/loss usually, but let's stick to standard flow
-      return acc + (t.type === 'income' ? t.amount : -t.amount);
-    }, 0);
-  }, [transactions]);
-
-  const globalInvestment = useMemo(() => {
-    return transactions.reduce((acc, t) => acc + (t.type === 'investment' ? t.amount : 0), 0);
+    return transactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
   }, [transactions]);
 
   const handleAddProject = async (name: string, description: string, icon: string) => {
@@ -199,13 +192,6 @@ const AppContent: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const openEntryModal = (type: 'income' | 'expense' | 'investment', date: string) => {
-    setIsGeneralEntry(false);
-    setModalType(type);
-    setSelectedDate(date);
-    setIsModalOpen(true);
-  };
-
   if (authLoading || (token && isInitializing)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
@@ -246,7 +232,6 @@ const AppContent: React.FC = () => {
           onLogout={logout}
           onExport={handleExportCSV}
           globalBalance={globalBalance}
-          globalInvestment={globalInvestment}
           onSetView={setView}
           onGeneralEntry={openGeneralEntry}
         />
@@ -262,14 +247,13 @@ const AppContent: React.FC = () => {
                 <div className="space-y-6">
                   <ProjectHeader 
                     project={activeProject} 
-                    transactions={transactions.filter(t => t.project === activeProject.id)}
-                    onAddInvestment={() => openEntryModal('investment', format(new Date(), 'yyyy-MM-dd'))}
+                    transactions={transactions.filter(t => t.project === activeProject.id)} 
                   />
                   <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <CalendarView 
                       projectId={activeProjectId!}
                       transactions={transactions.filter(t => t.project === activeProjectId)}
-                      onAddTransaction={openEntryModal}
+                      onAddTransaction={(type, date) => { setIsGeneralEntry(false); setModalType(type); setSelectedDate(date); setIsModalOpen(true); }}
                       onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
                       onDeleteTransaction={handleDeleteTransaction}
                       activeProject={activeProject}
@@ -313,7 +297,6 @@ const AppContent: React.FC = () => {
 
       {isModalOpen && (
         <TransactionModal 
-          key={`${modalType}-${selectedDate}-${isGeneralEntry}`}
           type={modalType} 
           date={selectedDate!} 
           onClose={() => { setIsModalOpen(false); setIsGeneralEntry(false); }} 
@@ -328,7 +311,7 @@ const AppContent: React.FC = () => {
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 
-          onAdd={openEntryModal} 
+          onAdd={(type, date) => { setIsDayDetailOpen(false); setModalType(type); setSelectedDate(date); setIsModalOpen(true); }} 
           user={user}
         />
       )}

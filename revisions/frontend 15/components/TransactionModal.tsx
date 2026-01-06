@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { X, Banknote, FileText, TrendingUp, TrendingDown, Calendar as CalendarIcon, Landmark } from 'lucide-react';
+import { X, Banknote, FileText, TrendingUp, TrendingDown, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface TransactionModalProps {
@@ -29,31 +29,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
     }
   };
 
-  const getAccentColor = () => {
-    if (currentType === 'income') return 'text-emerald-600';
-    if (currentType === 'expense') return 'text-rose-600';
-    return 'text-violet-600';
-  };
-
-  const getBorderColor = () => {
-    if (currentType === 'income') return 'focus:border-emerald-500';
-    if (currentType === 'expense') return 'focus:border-rose-500';
-    return 'focus:border-violet-500';
-  };
-
-  const getBtnBg = () => {
-    if (currentType === 'income') return 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200/50';
-    if (currentType === 'expense') return 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50';
-    return 'bg-violet-600 hover:bg-violet-700 shadow-violet-200/50';
-  };
-
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className={`text-2xl font-black tracking-tight ${getAccentColor()}`}>
-              Add {currentType.charAt(0).toUpperCase() + currentType.slice(1)}
+            <h3 className={`text-2xl font-black tracking-tight ${currentType === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+              Add {currentType === 'income' ? 'Income' : 'Expense'}
             </h3>
             <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">Record Entry</p>
           </div>
@@ -62,35 +44,33 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
           </button>
         </div>
 
-        {/* Type Toggle - Modified to hide inappropriate options */}
-        {currentType !== 'investment' && (
-          <div className="flex p-1 bg-slate-100 rounded-2xl mb-6">
-            <button
-              type="button"
-              onClick={() => setCurrentType('income')}
-              className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                currentType === 'income' 
-                  ? 'bg-white text-emerald-600 shadow-sm scale-[1.02]' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <TrendingUp size={14} className="mb-0.5" />
-              Income
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentType('expense')}
-              className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                currentType === 'expense' 
-                  ? 'bg-white text-rose-600 shadow-sm scale-[1.02]' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <TrendingDown size={14} className="mb-0.5" />
-              Expense
-            </button>
-          </div>
-        )}
+        {/* Type Toggle */}
+        <div className="flex p-1 bg-slate-100 rounded-2xl mb-6">
+          <button
+            type="button"
+            onClick={() => setCurrentType('income')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              currentType === 'income' 
+                ? 'bg-white text-emerald-600 shadow-sm scale-[1.02]' 
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <TrendingUp size={16} />
+            Income
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentType('expense')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              currentType === 'expense' 
+                ? 'bg-white text-rose-600 shadow-sm scale-[1.02]' 
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <TrendingDown size={16} />
+            Expense
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="relative group">
@@ -112,8 +92,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
           <div className="relative group">
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Amount (PKR)</label>
             <div className="relative">
-              <span className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${currentType === 'income' ? 'text-emerald-400' : currentType === 'expense' ? 'text-rose-400' : 'text-violet-400'}`}>
-                {currentType === 'investment' ? <Landmark size={24} /> : <Banknote size={24} />}
+              <span className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${currentType === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <Banknote size={24} />
               </span>
               <input
                 autoFocus
@@ -123,7 +103,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className={`w-full pl-14 pr-6 py-5 rounded-2xl border-2 bg-slate-50/50 outline-none transition-all text-3xl font-black text-slate-800 placeholder:text-slate-200 ${getBorderColor()} focus:bg-white border-transparent`}
+                className={`w-full pl-14 pr-6 py-5 rounded-2xl border-2 bg-slate-50/50 outline-none transition-all text-3xl font-black text-slate-800 placeholder:text-slate-200 ${
+                  currentType === 'income' ? 'focus:border-emerald-500 focus:bg-white' : 'focus:border-rose-500 focus:bg-white'
+                } border-transparent`}
               />
             </div>
           </div>
@@ -137,15 +119,21 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ type, date, onClose
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Entry context..."
-                className={`w-full pl-14 pr-6 py-5 rounded-2xl border-2 bg-slate-50/50 outline-none transition-all h-28 resize-none text-slate-700 font-medium ${getBorderColor()} focus:bg-white border-transparent`}
+                placeholder="What was this entry for?"
+                className={`w-full pl-14 pr-6 py-5 rounded-2xl border-2 bg-slate-50/50 outline-none transition-all h-28 resize-none text-slate-700 font-medium ${
+                  currentType === 'income' ? 'focus:border-emerald-500 focus:bg-white' : 'focus:border-rose-500 focus:bg-white'
+                } border-transparent`}
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] text-white shadow-2xl transition-all active:scale-[0.98] ${getBtnBg()}`}
+            className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] text-white shadow-2xl transition-all active:scale-[0.98] ${
+              currentType === 'income' 
+                ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200/50' 
+                : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200/50'
+            }`}
           >
             Commit Entry
           </button>

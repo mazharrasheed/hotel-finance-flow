@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, Project, TransactionType } from '../types';
-import { Printer, FileText, TrendingUp, TrendingDown, Hotel, Search, Filter, X, Calendar as CalendarIcon, Landmark } from 'lucide-react';
+import { Transaction, Project } from '../types';
+import { Printer, FileText, TrendingUp, TrendingDown, Hotel, Search, Filter, X, Calendar as CalendarIcon } from 'lucide-react';
+// Use native Date constructor instead of parseISO as it is missing from the environment
 import { format } from 'date-fns';
 
 interface ReportsViewProps {
@@ -12,7 +13,6 @@ interface ReportsViewProps {
 const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<TransactionType | 'all' | 'income_expense'>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
@@ -22,14 +22,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
     if (selectedProjectId !== 'all') {
       const targetId = selectedProjectId === 'general' ? null : selectedProjectId;
       list = list.filter(t => t.project === targetId);
-    }
-
-    if (selectedType !== 'all') {
-      if (selectedType === 'income_expense') {
-        list = list.filter(t => t.type === 'income' || t.type === 'expense');
-      } else {
-        list = list.filter(t => t.type === selectedType);
-      }
     }
 
     if (startDate) {
@@ -44,39 +36,42 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       const q = searchQuery.toLowerCase();
       list = list.filter(t => 
         t.note.toLowerCase().includes(q) || 
+        // Use native Date constructor for ISO strings
         format(new Date(t.date), 'MMM dd, yyyy').toLowerCase().includes(q)
       );
     }
 
     return list;
-  }, [transactions, selectedProjectId, selectedType, startDate, endDate, searchQuery]);
+  }, [transactions, selectedProjectId, startDate, endDate, searchQuery]);
 
   const ledgerData = useMemo(() => {
     // 1. Create a stable chronological sort (Oldest to Newest)
+    // We add an index to maintain original relative order for same-day transactions
     const indexed = filteredTransactions.map((t, i) => ({ ...t, originalIndex: i }));
     
     const sortedChronologically = [...indexed].sort((a, b) => {
       const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
       if (dateDiff !== 0) return dateDiff;
+      // Fallback to original index to keep same-day transactions in their entry order
       return a.originalIndex - b.originalIndex;
     });
     
-    // 2. Calculate running balance (Income - Expense ONLY)
-    let runningOpBalance = 0;
+    // 2. Calculate running balance based on chronological order
+    let runningBalance = 0;
     const dataWithBalance = sortedChronologically.map(t => {
       if (t.type === 'income') {
-        runningOpBalance += t.amount;
-      } else if (t.type === 'expense') {
-        runningOpBalance -= t.amount;
+        runningBalance += t.amount;
+      } else {
+        runningBalance -= t.amount;
       }
-      // Investments do not affect the operational running balance in this view
       return {
         ...t,
-        runningBalance: runningOpBalance
+        runningBalance
       };
     });
 
     // 3. Return reverse chronological for display (Newest to Oldest)
+    // This ensures the top row always contains the final net balance
     return dataWithBalance.sort((a, b) => {
       const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateDiff !== 0) return dateDiff;
@@ -93,11 +88,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const investment = filteredTransactions
-      .filter(t => t.type === 'investment')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return { income, expense, investment, net: income - expense };
+    return { income, expense, net: income - expense };
   }, [filteredTransactions]);
 
   const handlePrint = () => {
@@ -122,13 +113,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
         </div>
       </header>
 
-      {/* Audit Filters */}
+      {/* Audit Filters - Only visible on screen */}
       <div className="flex flex-col xl:flex-row gap-4 mb-8 print:hidden">
         <div className="flex-1 relative">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="Search notes or dates..."
+            placeholder="Search notes or text-based date..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-medium text-slate-700"
@@ -141,71 +132,96 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
+          {/* Start Date */}
           <div className="sm:w-48 relative group">
-            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
             <input 
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full pl-10 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
+              className="w-full pl-10 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
+              placeholder="From Date"
             />
+            {startDate && (
+              <button 
+                onClick={(e) => { e.preventDefault(); setStartDate(''); }} 
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
+              >
+                <X size={16} />
+              </button>
+            )}
             <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">From</div>
           </div>
 
+          {/* End Date */}
           <div className="sm:w-48 relative group">
-            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
             <input 
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full pl-10 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
+              className="w-full pl-10 pr-10 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 cursor-pointer text-xs"
+              placeholder="Up To Date"
             />
-            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">To</div>
+            {endDate && (
+              <button 
+                onClick={(e) => { e.preventDefault(); setEndDate(''); }} 
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors z-10"
+              >
+                <X size={16} />
+              </button>
+            )}
+            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">Up To</div>
           </div>
 
-          <div className="sm:w-48 relative group">
-            <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <select 
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value as any)}
-              className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
-            >
-              <option value="all">All Types</option>
-              <option value="income">Income Only</option>
-              <option value="expense">Expense Only</option>
-              <option value="income_expense">Income & Expense</option>
-              <option value="investment">Investment Only</option>
-            </select>
-            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">Type</div>
-          </div>
-
-          <div className="sm:w-48 relative group">
-            <Hotel size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="sm:w-56 relative group">
+            <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600" />
             <select 
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
             >
               <option value="all">All Projects</option>
-              <option value="general">General Entries</option>
+              <option value="general">General (No Project)</option>
               {projects.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-            <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">Project</div>
           </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 print:hidden">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-1">
-          <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-2">
-            <Landmark size={20} />
-          </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Capital Investment</p>
-          <p className="text-2xl font-black text-violet-700">PKR {stats.investment.toLocaleString()}</p>
+      {/* Printable Summary Header */}
+      <div className="hidden print:block mb-2 border-b-2 border-slate-800 pb-1">
+        <div className="flex items-center justify-between">
+           <div className="flex items-center gap-2 text-indigo-700 font-black text-base">
+             <Hotel size={18} />
+             Ali & Company Audit Record {selectedProjectId !== 'all' ? ` - ${selectedProjectId === 'general' ? 'General Entries' : projects.find(p => p.id === selectedProjectId)?.name}` : ''}
+           </div>
+           <div className="text-right">
+             <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">Financial Ledger</p>
+             <p className="text-[7px] text-slate-400 font-medium leading-none">Date: {format(new Date(), 'MMM dd, yyyy')}</p>
+           </div>
         </div>
+        <div className="flex gap-6 mt-1">
+           <div>
+             <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest mr-2">Total In:</span>
+             <span className="text-xs font-black text-emerald-600">PKR {stats.income.toLocaleString()}</span>
+           </div>
+           <div>
+             <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest mr-2">Total Out:</span>
+             <span className="text-xs font-black text-rose-600">PKR {stats.expense.toLocaleString()}</span>
+           </div>
+           <div>
+             <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest mr-2">Net:</span>
+             <span className={`text-xs font-black ${stats.net >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+               PKR {stats.net.toLocaleString()}
+             </span>
+           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print:hidden">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-1">
           <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-2">
             <TrendingUp size={20} />
@@ -231,16 +247,14 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
         </div>
       </div>
 
-      {/* Ledger Table */}
       <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden print:border-slate-800 print:rounded-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 print:bg-slate-100 print:border-slate-800">
                 <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Date</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Project</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Project/General</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Description</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Investment</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Income</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Expense</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Balance</th>
@@ -249,27 +263,29 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
             <tbody className="divide-y divide-slate-100 print:divide-slate-300">
               {ledgerData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No matching records</p>
                   </td>
                 </tr>
               ) : (
                 ledgerData.map((row, idx) => {
                   const project = projects.find(p => p.id === row.project);
-                  const projectName = row.general ? 'General' : (project?.name || 'Archived');
+                  const projectName = row.general ? 'General' : (project?.name || 'Archived Project');
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap text-sm print:text-[8px] font-bold text-slate-700">
-                        {format(new Date(row.date), 'MMM dd, yyyy')}
+                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap">
+                        {/* Use native Date constructor for ISO strings */}
+                        <span className="text-sm print:text-[8px] font-bold text-slate-700">{format(new Date(row.date), 'MMM dd, yyyy')}</span>
                       </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap text-sm print:text-[8px] font-bold text-slate-800">
-                        {projectName}
+                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap">
+                        <span className={`text-sm print:text-[8px] font-bold ${row.general ? 'text-indigo-600 italic' : 'text-slate-800'}`}>
+                          {projectName}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 text-sm print:text-[8px] font-medium text-slate-500 italic block min-w-[150px]">
-                        {row.note || '-'}
-                      </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-violet-600">
-                        {row.type === 'investment' ? row.amount.toLocaleString() : '-'}
+                      <td className="px-6 py-4 print:px-2 print:py-1">
+                        <span className="text-sm print:text-[8px] font-medium text-slate-500 italic block min-w-[150px]">
+                          {row.note || '-'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-emerald-600">
                         {row.type === 'income' ? row.amount.toLocaleString() : '-'}
@@ -290,8 +306,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
             {ledgerData.length > 0 && (
               <tfoot className="bg-slate-50 border-t-2 border-slate-100 print:bg-white print:border-slate-800">
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 print:px-2 print:py-1 text-right">
-                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Operating Balance:</span>
+                  <td colSpan={5} className="px-6 py-4 print:px-2 print:py-1 text-right">
+                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Position:</span>
                   </td>
                   <td className={`px-6 py-4 print:px-2 print:py-1 text-right text-lg print:text-sm font-black ${
                     stats.net >= 0 ? 'text-indigo-600' : 'text-rose-600'

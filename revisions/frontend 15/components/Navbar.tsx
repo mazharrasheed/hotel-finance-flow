@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User, AppTheme } from '../types';
-import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud, PlusCircle, Palette, Landmark } from 'lucide-react';
+import { Menu, LogOut, User as UserIcon, Globe, DownloadCloud, PlusCircle, Palette } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
@@ -10,7 +10,6 @@ interface NavbarProps {
   onLogout: () => void;
   onExport: () => void;
   globalBalance: number;
-  globalInvestment: number;
   onSetView: (view: 'dashboard' | 'users' | 'profile' | 'reports') => void;
   onGeneralEntry: () => void;
 }
@@ -21,7 +20,6 @@ const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   onExport,
   globalBalance,
-  globalInvestment,
   onSetView,
   onGeneralEntry
 }) => {
@@ -85,25 +83,13 @@ const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {user && (
-          <div className="flex items-center gap-4">
-            <div className="hidden lg:flex items-center gap-2 bg-violet-50 px-4 py-1.5 rounded-2xl border border-violet-100">
-              <Landmark size={16} className="text-violet-600" />
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Global Invested</span>
-                <span className="text-sm font-black leading-tight text-violet-700">
-                  PKR {globalInvestment.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 bg-[var(--primary-light)] px-4 py-1.5 rounded-2xl border border-[var(--primary)]/10">
-              <Globe size={16} className="text-[var(--primary)]" />
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Net Worth</span>
-                <span className={`text-sm font-black leading-tight ${globalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  PKR {globalBalance.toLocaleString()}
-                </span>
-              </div>
+          <div className="flex items-center gap-2 bg-[var(--primary-light)] px-4 py-1.5 rounded-2xl border border-[var(--primary)]/10">
+            <Globe size={16} className="text-[var(--primary)]" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Net Worth</span>
+              <span className={`text-sm font-black leading-tight ${globalBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                PKR {globalBalance.toLocaleString()}
+              </span>
             </div>
           </div>
         )}
