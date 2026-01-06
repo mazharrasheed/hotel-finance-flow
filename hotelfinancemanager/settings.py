@@ -154,14 +154,14 @@ REST_FRAMEWORK = {
     ]
 }
 
-REST_FRAMEWORK = {
-    "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.UserRateThrottle",
-    ],
-    "DEFAULT_THROTTLE_RATES": {
-        "user": "100/day",
-    },
-}
+# REST_FRAMEWORK = {
+#     "DEFAULT_THROTTLE_CLASSES": [
+#         "rest_framework.throttling.UserRateThrottle",
+#     ],
+#     "DEFAULT_THROTTLE_RATES": {
+#         "user": "100/day",
+#     },
+# }
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
