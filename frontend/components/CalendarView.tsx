@@ -151,33 +151,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </div>
 
-          {user.permissions.canViewReports && (
-            <button 
-              onClick={generateInsight}
-              disabled={isLoadingInsight || transactions.length === 0}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-black hover:bg-indigo-100 transition-all disabled:opacity-50 text-xs md:text-sm"
-            >
-              <BarChart4 size={16} className={isLoadingInsight ? 'animate-pulse' : ''} />
-              {isLoadingInsight ? 'Processing...' : 'Audit AI'}
-            </button>
-          )}
         </div>
       </div>
 
-      {insight && (
-        <div className="mx-4 md:mx-6 mt-4 p-4 bg-indigo-600 text-white rounded-2xl flex items-start gap-4 animate-in slide-in-from-top duration-300 shadow-xl shadow-indigo-200/50">
-          <div className="p-2 bg-white/20 rounded-lg shrink-0">
-            <BarChart4 size={20} />
-          </div>
-          <div className="flex-1">
-            <p className="text-xs md:text-sm font-bold leading-relaxed">{insight}</p>
-          </div>
-          <button onClick={() => setInsight(null)} className="p-1 hover:bg-white/10 rounded">
-            <Plus size={18} className="rotate-45" />
-          </button>
-        </div>
-      )}
-
+      
       <div className="p-2 md:p-6 overflow-x-auto">
         <div className="min-w-[800px] lg:min-w-0">
           <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
