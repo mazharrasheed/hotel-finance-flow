@@ -43,7 +43,7 @@ export interface Project {
   icon: string;
 }
 
-export type TransactionType = 'income' | 'expense' | 'investment';
+export type TransactionType = 'income' | 'expense' | 'investment' | 'general';
 
 export interface Transaction {
   id: string;

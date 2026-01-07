@@ -178,7 +178,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
               </div>
             </div>
 
-            <div className="flex-1 min-h-[350px] relative overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-[350px] relative">
+              <div className="absolute inset-0 z-20 pointer-events-none select-none overflow-hidden flex items-center justify-center">
+                <span className="text-[3rem] font-black text-slate-400/5 -rotate-12 uppercase tracking-[0.2em] border-2 border-slate-400/5 px-6 py-2 rounded-2xl">Ledger Audit</span>
+              </div>
+
               <ResponsiveContainer width="100%" height={400} className="relative z-10">
                 <BarChart data={projectStats} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -193,28 +197,13 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                   <Bar dataKey="expense" fill={colors.expense} radius={[6, 6, 0, 0]} barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
-
-              {/* Hotel Management Watermarks - Brought on top with z-20 */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none z-20">
-                <div className="grid grid-cols-3 gap-x-24 gap-y-20 -rotate-12 scale-125">
-                  <Hotel size={120} />
-                  <Bed size={120} />
-                  <ConciergeBell size={120} />
-                  <Utensils size={120} />
-                  <Building2 size={120} />
-                  <Coffee size={120} />
-                  <Key size={120} />
-                  <Hotel size={120} />
-                  <ConciergeBell size={120} />
-                </div>
-              </div>
             </div>
           </div>
         </section>
       ) : (
         /* Empty State Placeholder */
         <div className="bg-white/50 border-4 border-dashed border-slate-200 rounded-[3.5rem] p-24 text-center flex flex-col items-center relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none text-slate-300 z-0">
+          <div className="absolute inset-0 opacity-[0.05] flex items-center justify-center pointer-events-none text-slate-300">
              <Hotel size={300} />
           </div>
           <div className="relative z-10 flex flex-col items-center">

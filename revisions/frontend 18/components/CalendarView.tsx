@@ -11,7 +11,7 @@ import {
   endOfWeek,
   isValid
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Search, X, Calendar as CalendarIcon, Hotel, Bed, ConciergeBell, Utensils, Building2, Coffee, Key } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Search, X, Calendar as CalendarIcon } from 'lucide-react';
 
 const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
 const subMonths = (date: Date, amount: number) => addMonths(date, -amount);
@@ -57,24 +57,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   });
 
   const statsByDate = useMemo(() => {
-    const stats: Record<string, { income: number; expense: number; investment: number; generalNet: number; transactions: Transaction[] }> = {};
+    const stats: Record<string, { income: number; expense: number; investment: number; general: number; transactions: Transaction[] }> = {};
     
     transactions.forEach(t => {
       const dateKey = format(new Date(t.date), 'yyyy-MM-dd');
       if (!stats[dateKey]) {
-        stats[dateKey] = { income: 0, expense: 0, investment: 0, generalNet: 0, transactions: [] };
+        stats[dateKey] = { income: 0, expense: 0, investment: 0, general: 0, transactions: [] };
       }
-      
       if (t.type === 'income') stats[dateKey].income += t.amount;
       else if (t.type === 'expense') stats[dateKey].expense += t.amount;
       else if (t.type === 'investment') stats[dateKey].investment += t.amount;
-      
-      // Keep track of net from general entries (project: null) specifically for the inflows summary
-      if (t.project === null) {
-        if (t.type === 'income') stats[dateKey].generalNet += t.amount;
-        else if (t.type === 'expense') stats[dateKey].generalNet -= t.amount;
-      }
-      
+      else if (t.type === 'general') stats[dateKey].general += t.amount;
       stats[dateKey].transactions.push(t);
     });
     
@@ -82,8 +75,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, [transactions]);
 
   return (
-    <div className="flex flex-col w-full overflow-hidden print:hidden relative">
-      <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-10">
+    <div className="flex flex-col w-full overflow-hidden print:hidden">
+      <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
           <h2 className="text-lg md:text-xl font-black text-slate-800 shrink-0">
             {format(currentMonth, 'MMMM yyyy')}
@@ -132,8 +125,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      <div className="p-2 md:p-6 overflow-x-auto relative">
-        <div className="min-w-[800px] lg:min-w-0 relative z-10">
+      <div className="p-2 md:p-6 overflow-x-auto">
+        <div className="min-w-[800px] lg:min-w-0">
           <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="bg-slate-50 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -143,8 +136,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
             {calendarDays.map((day, idx) => {
               const dateKey = format(day, 'yyyy-MM-dd');
-              const dayStats = statsByDate[dateKey] || { income: 0, expense: 0, investment: 0, generalNet: 0, transactions: [] };
-              const opBalance = dayStats.income - dayStats.expense;
+              const dayStats = statsByDate[dateKey] || { income: 0, expense: 0, investment: 0, general: 0, transactions: [] };
+              const opBalance = (dayStats.income + dayStats.general) - dayStats.expense;
               const isCurrentMonth = isSameMonth(day, monthStart);
               const isDayToday = isToday(day);
 
@@ -182,15 +175,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       <div 
                         key={t.id} 
                         className={`text-[9px] px-1.5 py-0.5 rounded-md flex justify-between items-center ${
-                          t.project === null ? 'bg-indigo-50 text-indigo-700' :
                           t.type === 'income' ? 'bg-emerald-50 text-emerald-700' : 
                           t.type === 'expense' ? 'bg-rose-50 text-rose-700' : 
+                          t.type === 'general' ? 'bg-indigo-50 text-indigo-700' :
                           'bg-violet-50 text-violet-700'
                         }`}
                       >
-                        <span className="truncate font-black">
-                          {t.project === null ? 'GEN' : (t.type === 'investment' ? 'INV' : t.type.toUpperCase())}
-                        </span>
+                        <span className="truncate font-black">{t.type === 'investment' ? 'INV' : t.type.toUpperCase()}</span>
                         <span className="font-bold">{t.amount}</span>
                       </div>
                     ))}
@@ -198,12 +189,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
                   <div className="mt-auto pt-2 border-t border-slate-50">
                     <div className="flex flex-col gap-0.5">
-                       {(dayStats.investment > 0 || Math.abs(dayStats.generalNet) > 0) && (
+                       {(dayStats.investment > 0 || dayStats.general > 0) && (
                          <div className="flex justify-between items-center">
                             <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Inflows</span>
-                            <span className="text-[9px] font-black text-indigo-600 leading-none">
-                              {dayStats.investment + (dayStats.generalNet > 0 ? dayStats.generalNet : 0)}
-                            </span>
+                            <span className="text-[9px] font-black text-indigo-600 leading-none">+{dayStats.investment + dayStats.general}</span>
                          </div>
                        )}
                        <div className="flex justify-between items-center">
@@ -219,20 +208,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Watermark for Calendar */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none z-20">
-          <div className="grid grid-cols-4 gap-x-24 gap-y-24 -rotate-12 scale-150">
-            <Hotel size={140} />
-            <Bed size={140} />
-            <ConciergeBell size={140} />
-            <Utensils size={140} />
-            <Building2 size={140} />
-            <Coffee size={140} />
-            <Key size={140} />
-            <Hotel size={140} />
           </div>
         </div>
       </div>

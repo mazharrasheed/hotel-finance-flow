@@ -33,7 +33,6 @@ const AppContent: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false);
   const [modalType, setModalType] = useState<TransactionType>('income');
-  const [isGeneralEntrySession, setIsGeneralEntrySession] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Project Deletion states
@@ -104,6 +103,7 @@ const AppContent: React.FC = () => {
   const globalBalance = useMemo(() => {
     return transactions.reduce((acc, t) => {
       if (t.type === 'investment') return acc;
+      // Treating 'general' and 'income' as positive, 'expense' as negative
       const isOutflow = t.type === 'expense';
       return acc + (isOutflow ? -t.amount : t.amount);
     }, 0);
@@ -151,9 +151,8 @@ const AppContent: React.FC = () => {
   const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'project'>) => {
     const payload: any = {
       ...data,
-      project: isGeneralEntrySession ? null : activeProjectId
+      project: data.type === 'general' ? null : activeProjectId
     };
-    
     try {
       const newTransaction = await apiService.createTransaction(payload);
       setTransactions(prev => [...prev, newTransaction]);
@@ -186,7 +185,7 @@ const AppContent: React.FC = () => {
     const headers = ["Project", "Date", "Type", "Amount", "Note"];
     const rows = transactions.map(t => {
       const p = projects.find(proj => String(proj.id) === String(t.project));
-      return [t.project === null ? 'General' : (p?.name || "Archived"), t.date, t.type.toUpperCase(), t.amount, t.note];
+      return [t.type === 'general' ? 'General' : (p?.name || "Archived"), t.date, t.type.toUpperCase(), t.amount, t.note];
     });
     const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -199,15 +198,13 @@ const AppContent: React.FC = () => {
 
   const openGeneralEntry = () => {
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
-    setModalType('income');
-    setIsGeneralEntrySession(true);
+    setModalType('general');
     setIsModalOpen(true);
   };
 
   const openEntryModal = (type: TransactionType, date: string) => {
     setModalType(type);
     setSelectedDate(date);
-    setIsGeneralEntrySession(false);
     setIsModalOpen(true);
   };
 
@@ -273,7 +270,7 @@ const AppContent: React.FC = () => {
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                       <CalendarView 
                         projectId={activeProjectId!}
-                        transactions={transactions.filter(t => String(t.project) === activeProjectId || t.project === null)}
+                        transactions={transactions.filter(t => String(t.project) === activeProjectId)}
                         onAddTransaction={openEntryModal}
                         onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
                         onDeleteTransaction={handleDeleteTransaction}
@@ -332,9 +329,8 @@ const AppContent: React.FC = () => {
 
       {isModalOpen && (
         <TransactionModal 
-          key={`${modalType}-${selectedDate}-${isGeneralEntrySession}`}
+          key={`${modalType}-${selectedDate}`}
           type={modalType} 
-          isGeneral={isGeneralEntrySession}
           date={selectedDate!} 
           onClose={() => { setIsModalOpen(false); }} 
           onSubmit={handleAddTransaction} 
@@ -344,7 +340,7 @@ const AppContent: React.FC = () => {
       {isDayDetailOpen && selectedDate && (
         <DayDetailModal 
           date={selectedDate} 
-          transactions={transactions.filter(t => (String(t.project) === activeProjectId || t.project === null) && t.date === selectedDate)} 
+          transactions={transactions.filter(t => String(t.project) === activeProjectId && t.date === selectedDate)} 
           onClose={() => setIsDayDetailOpen(false)} 
           onUpdate={handleUpdateTransaction} 
           onDelete={handleDeleteTransaction} 

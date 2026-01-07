@@ -12,7 +12,7 @@ interface ReportsViewProps {
 const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<TransactionType | 'all' | 'income_expense'>('all');
+  const [selectedType, setSelectedType] = useState<TransactionType | 'all' | 'income_expense_general'>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
@@ -20,13 +20,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
     let list = [...transactions];
 
     if (selectedProjectId !== 'all') {
-      const targetId = selectedProjectId === 'general_project' ? null : selectedProjectId;
+      const targetId = selectedProjectId === 'general' ? null : selectedProjectId;
       list = list.filter(t => t.project === targetId);
     }
 
     if (selectedType !== 'all') {
-      if (selectedType === 'income_expense') {
-        list = list.filter(t => t.type === 'income' || t.type === 'expense');
+      if (selectedType === 'income_expense_general') {
+        list = list.filter(t => t.type === 'income' || t.type === 'expense' || t.type === 'general');
       } else {
         list = list.filter(t => t.type === selectedType);
       }
@@ -61,14 +61,15 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
       return a.originalIndex - b.originalIndex;
     });
     
-    // 2. Calculate running balance (Income - Expense ONLY, regardless of project/general)
+    // 2. Calculate running balance (Income + General - Expense ONLY)
     let runningOpBalance = 0;
     const dataWithBalance = sortedChronologically.map(t => {
-      if (t.type === 'income') {
+      if (t.type === 'income' || t.type === 'general') {
         runningOpBalance += t.amount;
       } else if (t.type === 'expense') {
         runningOpBalance -= t.amount;
       }
+      // Investments do not affect the operational running balance in this view
       return {
         ...t,
         runningBalance: runningOpBalance
@@ -85,35 +86,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
 
   const stats = useMemo(() => {
     const income = filteredTransactions
-      .filter(t => t.type === 'income' && t.project !== null)
+      .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const expense = filteredTransactions
-      .filter(t => t.type === 'expense' && t.project !== null)
+      .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const investment = filteredTransactions
       .filter(t => t.type === 'investment')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    // General Entries are now all transactions with project: null
-    const generalIncome = filteredTransactions
-      .filter(t => t.type === 'income' && t.project === null)
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const generalExpense = filteredTransactions
-      .filter(t => t.type === 'expense' && t.project === null)
+    const general = filteredTransactions
+      .filter(t => t.type === 'general')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const generalNet = generalIncome - generalExpense;
-
-    return { 
-      income, 
-      expense, 
-      investment, 
-      general: generalNet, 
-      net: (income + generalIncome) - (expense + generalExpense) 
-    };
+    return { income, expense, investment, general, net: (income + general) - expense };
   }, [filteredTransactions]);
 
   const handlePrint = () => {
@@ -187,8 +175,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
               className="w-full h-[58px] pl-12 pr-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
             >
               <option value="all">All Types</option>
-              <option value="income_expense">Income & Expense</option>
-              <option value="investment">Investments</option>
+              <option value="income">Income Only</option>
+              <option value="expense">Expense Only</option>
+              <option value="general">General Only</option>
+              <option value="income_expense_general">Op In/Out/Gen</option>
+              <option value="investment">Investment Only</option>
             </select>
             <div className="absolute -top-2.5 left-4 px-1 bg-white text-[8px] font-black text-slate-400 uppercase tracking-widest">Type</div>
           </div>
@@ -200,8 +191,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
               onChange={(e) => setSelectedProjectId(e.target.value)}
               className="w-full h-[58px] pl-12 pr-4 bg-white border border-slate-100 rounded-2xl shadow-sm focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
             >
-              <option value="all">All Sources</option>
-              <option value="general_project">General Entries Only</option>
+              <option value="all">All Projects</option>
+              <option value="general_project">Non-Project Entries</option>
               {projects.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -224,24 +215,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
           <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-2">
             <TrendingUp size={20} />
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Revenue</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Direct Revenue</p>
           <p className="text-2xl font-black text-emerald-600">PKR {stats.income.toLocaleString()}</p>
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-1">
           <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-2">
             <TrendingDown size={20} />
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Costs</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operating Costs</p>
           <p className="text-2xl font-black text-rose-600">PKR {stats.expense.toLocaleString()}</p>
         </div>
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-1">
           <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-2">
             <Sparkles size={20} />
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">General Net</p>
-          <p className={`text-2xl font-black ${stats.general >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-            PKR {stats.general.toLocaleString()}
-          </p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">General Entries</p>
+          <p className="text-2xl font-black text-indigo-600">PKR {stats.general.toLocaleString()}</p>
         </div>
       </div>
 
@@ -252,26 +241,32 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 print:bg-slate-100 print:border-slate-800">
                 <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Date</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Context</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Investment</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Project</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Type</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Description</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Income</th>
-                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Expense</th>
+                <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Amount</th>
                 <th className="px-6 py-4 print:px-2 print:py-1 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest print:text-slate-800">Balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 print:divide-slate-300">
               {ledgerData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No matching records</p>
                   </td>
                 </tr>
               ) : (
                 ledgerData.map((row, idx) => {
                   const project = projects.find(p => String(p.id) === String(row.project));
-                  const projectName = row.project === null ? 'General Entry' : (project?.name || 'Non-Project');
+                  const projectName = row.type === 'general' ? 'General' : (project?.name || 'Non-Project');
                   
+                  const getAmountColor = () => {
+                    if (row.type === 'income') return 'text-emerald-600';
+                    if (row.type === 'expense') return 'text-rose-600';
+                    if (row.type === 'general') return 'text-indigo-600';
+                    return 'text-violet-600';
+                  };
+
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap text-sm print:text-[8px] font-bold text-slate-700">
@@ -280,17 +275,14 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
                       <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap text-sm print:text-[8px] font-bold text-slate-800">
                         {projectName}
                       </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-violet-600">
-                        {row.type === 'investment' ? row.amount.toLocaleString() : '-'}
+                      <td className="px-6 py-4 print:px-2 print:py-1 whitespace-nowrap text-[10px] font-black uppercase tracking-widest">
+                        <span className={getAmountColor()}>{row.type}</span>
                       </td>
                       <td className="px-6 py-4 print:px-2 print:py-1 text-sm print:text-[8px] font-medium text-slate-500 italic block min-w-[150px]">
                         {row.note || '-'}
                       </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-emerald-600">
-                        {row.type === 'income' ? row.amount.toLocaleString() : '-'}
-                      </td>
-                      <td className="px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black text-rose-600">
-                        {row.type === 'expense' ? row.amount.toLocaleString() : '-'}
+                      <td className={`px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black ${getAmountColor()}`}>
+                        {row.type === 'expense' ? `-${row.amount.toLocaleString()}` : row.amount.toLocaleString()}
                       </td>
                       <td className={`px-6 py-4 print:px-2 print:py-1 text-right whitespace-nowrap text-sm print:text-[8px] font-black ${
                         row.runningBalance >= 0 ? 'text-indigo-600' : 'text-rose-600'
@@ -305,8 +297,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, projects }) => 
             {ledgerData.length > 0 && (
               <tfoot className="bg-slate-50 border-t-2 border-slate-100 print:bg-white print:border-slate-800">
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 print:px-2 print:py-1 text-right">
-                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Operational Balance:</span>
+                  <td colSpan={5} className="px-6 py-4 print:px-2 print:py-1 text-right">
+                    <span className="text-xs print:text-[8px] font-black text-slate-400 uppercase tracking-widest">Operating Balance (Inc + Gen - Exp):</span>
                   </td>
                   <td className={`px-6 py-4 print:px-2 print:py-1 text-right text-lg print:text-sm font-black ${
                     stats.net >= 0 ? 'text-indigo-600' : 'text-rose-600'

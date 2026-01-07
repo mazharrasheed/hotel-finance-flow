@@ -5,7 +5,7 @@ import {
   X, Trash2, Edit2, LayoutDashboard,
   Target, Layers, PieChart, Users, Cpu, Shield, 
   BarChart3, FileText, Award, Zap, Briefcase, Settings, UserCheck,
-  Key, Sparkles, FolderPlus, Hotel, Building2, Building, Home, Activity, Bed, ConciergeBell, Utensils, Coffee
+  Key, Sparkles, FolderPlus, Hotel, Building2, Building, Home, Activity
 } from 'lucide-react';
 import { DynamicIcon } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -172,63 +172,51 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in duration-200 relative overflow-hidden">
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">{editingProject ? 'Modify Project' : 'New Project'}</h3>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Project configuration</p>
-                </div>
-                <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors"><X size={24} /></button>
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">{editingProject ? 'Modify Project' : 'New Project'}</h3>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Project configuration</p>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entity Name</label>
-                  <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="Project name" />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                  <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-medium text-slate-700 transition-all h-24 resize-none" placeholder="Notes about this project..." />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Project Icon</label>
-                  <div className="grid grid-cols-6 gap-3 max-h-40 overflow-y-auto p-1 custom-scrollbar">
-                    {AVAILABLE_ICONS.map(iconName => (
-                      <button
-                        key={iconName}
-                        type="button"
-                        onClick={(e) => handleIconSelect(e, iconName)}
-                        className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center group ${
-                          selectedIcon === iconName 
-                            ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] scale-105 shadow-md' 
-                            : 'border-transparent bg-slate-50 text-slate-400 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="pointer-events-none">
-                          <DynamicIcon name={iconName} size={18} />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button type="submit" className="w-full py-5 bg-[var(--primary)] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[var(--primary)]/20 hover:opacity-90 transition-all active:scale-[0.98] relative z-30">
-                  {editingProject ? 'Update Project' : 'Add Project'}
-                </button>
-              </form>
+              <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors"><X size={24} /></button>
             </div>
-
-            {/* Watermark for Project Form Modal - Brought on top with z-20 */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none z-20">
-              <div className="grid grid-cols-2 gap-x-12 gap-y-12 -rotate-12 scale-150">
-                <Hotel size={100} />
-                <Bed size={100} />
-                <ConciergeBell size={100} />
-                <Building2 size={100} />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entity Name</label>
+                <input required value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all" placeholder="Project name" />
               </div>
-            </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-[var(--primary)] focus:bg-white rounded-2xl outline-none font-medium text-slate-700 transition-all h-24 resize-none" placeholder="Notes about this project..." />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Project Icon</label>
+                <div className="grid grid-cols-6 gap-3 max-h-40 overflow-y-auto p-1 custom-scrollbar">
+                  {AVAILABLE_ICONS.map(iconName => (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={(e) => handleIconSelect(e, iconName)}
+                      className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center group ${
+                        selectedIcon === iconName 
+                          ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] scale-105 shadow-md' 
+                          : 'border-transparent bg-slate-50 text-slate-400 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="pointer-events-none">
+                        <DynamicIcon name={iconName} size={18} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button type="submit" className="w-full py-5 bg-[var(--primary)] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[var(--primary)]/20 hover:opacity-90 transition-all active:scale-[0.98]">
+                {editingProject ? 'Update Project' : 'Add Project'}
+              </button>
+            </form>
           </div>
         </div>
       )}
