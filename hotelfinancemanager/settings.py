@@ -23,7 +23,7 @@ from pathlib import Path
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-c$a%3ewk+f$nsx0jr@u%!+)2i5ztx89m-v-rgnv)t5o5v4-4&v'
 
-ALLOWED_HOSTS = ["projectsfinanceflow.pythonanywhere.com",'127.0.0.1',]
+ALLOWED_HOSTS = ['127.0.0.1','aliandco.pythonanywhere.com']
 
 # Application definition
 
@@ -173,7 +173,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-    "https://projectsfinanceflow.pythonanywhere.com",
+    "https://aliandco.pythonanywhere.com",
+
 ]
 
 
@@ -185,7 +186,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://projectsfinanceflow.pythonanywhere.com",
+    "https://aliandco.pythonanywhere.com",
     
 ]
 
@@ -200,11 +201,11 @@ else:
     SESSION_COOKIE_SECURE = True
 
 # For password reset links
-FRONTEND_URL = "https://projectsfinanceflow.pythonanywhere.com"  # or your deployed React frontend URL
+FRONTEND_URL = "https://aliandco.pythonanywhere.com"  # or your deployed React frontend URL
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "mazharopal@gmail.com"
-EMAIL_HOST_PASSWORD = "gaqc ltiy djji sfgt "  # NOT your normal Gmail password
+EMAIL_HOST_PASSWORD = "gaqc ltiy djji sfgt"  # NOT your normal Gmail password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
