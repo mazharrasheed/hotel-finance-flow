@@ -48,6 +48,8 @@ class Project(models.Model):
             ('view_dashboard', 'Can view dashboard'),
             ("view_balance_sheet", "Can view balance sheet"),
             ("view_reports", "Can view reports"),
+            ("view_project_balance", "Can view blance"),
+            ("view_project_investment", "Can view investment"),
             # Add more custom permissions here
         ]
 

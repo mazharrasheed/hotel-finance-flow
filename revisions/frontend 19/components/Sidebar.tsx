@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onSetView
 }) => {
-  const { user, permissions } = useAuth();
+  const { user, hasPerm, permissions } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [newName, setNewName] = useState('');
@@ -60,6 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleProjectClick = (id: string) => {
     onSelectProject(id);
+    // Removed onSetView('dashboard') to prevent conflicting navigation back to root
   };
 
   const openAdd = () => {
@@ -99,6 +100,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   if (!user) return null;
 
+  const canAddProject = hasPerm('add_project', 'finance');
+  const canViewDashboard = permissions.canViewProjects;
+  const canViewBalanceSheet = permissions.canViewReports;
+
   return (
     <aside className={`fixed lg:relative inset-y-0 left-0 w-72 border-r border-slate-200 flex flex-col h-full z-40 transition-transform duration-300 ease-in-out overflow-hidden bg-white ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       <div className="absolute inset-0 bg-gradient-to-b from-white via-[var(--primary-light)]/20 to-slate-50 opacity-80 pointer-events-none" />
@@ -110,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button onClick={onClose} className="p-2 lg:hidden text-slate-400"><X size={20} /></button>
         </div>
 
-        {permissions.canAddProject && (
+        {canAddProject && (
           <button onClick={openAdd} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--primary)] text-white rounded-xl font-bold transition-all shadow-md active:scale-95 hover:opacity-90">
             <FolderPlus size={18} /> Add Project
           </button>
@@ -120,19 +125,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       <nav className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-6 relative z-10">
         <div className="px-3 py-2"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">General</span></div>
 
-        {permissions.canViewDashboard && (
-          <button onClick={handleDashboardClick} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${activeView === 'dashboard' && !activeProjectId ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold' : 'text-slate-600 hover:bg-white/60'}`}>
-            <LayoutDashboard size={20} /> <span className="text-sm">Project Hub</span>
-          </button>
-        )}
+        <button onClick={handleDashboardClick} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${activeView === 'dashboard' && !activeProjectId ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold' : 'text-slate-600 hover:bg-white/60'}`}>
+          <LayoutDashboard size={20} /> <span className="text-sm">Project Hub</span>
+        </button>
 
-        {permissions.canViewReports && (
+        {canViewBalanceSheet && (
           <button onClick={() => handleManagementClick('reports')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${activeView === 'reports' ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold' : 'text-slate-600 hover:bg-white/60'}`}>
             <FileText size={20} /> <span className="text-sm">Ledger</span>
           </button>
         )}
 
-        {permissions.canViewProjects && (
+        {canViewDashboard && (
           <>
             <div className="px-3 pt-6 py-2"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Entities</span></div>
             <div className="space-y-1">
@@ -143,10 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   <span className="flex-1 truncate text-sm">{project.name}</span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {permissions.canEditProject && (
+                    {hasPerm('change_project', 'finance') && (
                       <button onClick={(e) => openEdit(e, project)} className="p-1 hover:bg-white rounded-md text-slate-400"><Edit2 size={12} /></button>
                     )}
-                    {permissions.canDeleteProject && (
+                    {hasPerm('delete_project', 'finance') && (
                       <button onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} className="p-1 hover:bg-white rounded-md text-slate-400"><Trash2 size={12} /></button>
                     )}
                   </div>
@@ -157,7 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <div className="px-3 pt-6 py-2 border-t border-slate-100 mt-4"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System</span></div>
-        {permissions.canViewUsers && (
+        {(user.is_staff || user.is_superuser || hasPerm('view_user', 'auth')) && (
           <button onClick={() => handleManagementClick('users')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${activeView === 'users' ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold' : 'text-slate-600 hover:bg-white/60'}`}>
             <UserCheck size={20} /> <span className="text-sm">Personnel</span>
           </button>
@@ -217,6 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               </form>
             </div>
 
+            {/* Watermark for Project Form Modal - Brought on top with z-20 */}
             <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none z-20">
               <div className="grid grid-cols-2 gap-x-12 gap-y-12 -rotate-12 scale-150">
                 <Hotel size={100} />

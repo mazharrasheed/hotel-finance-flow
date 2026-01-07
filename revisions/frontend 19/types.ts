@@ -1,29 +1,11 @@
 
 export interface Permissions {
   [key: string]: any;
-  // User CRUD
-  canAddUser?: boolean;
-  canEditUser?: boolean;
-  canDeleteUser?: boolean;
-  canViewUsers?: boolean;
-  // Project CRUD
-  canAddProject?: boolean;
-  canEditProject?: boolean;
-  canDeleteProject?: boolean;
-  canViewProjects?: boolean;
-  // Transaction CRUD
+  canTakeBackup?: boolean;
   canAddTransaction?: boolean;
+  canViewReports?: boolean;
   canEditTransaction?: boolean;
   canDeleteTransaction?: boolean;
-  canViewTransactions?: boolean;
-  // Custom Views
-  canViewDashboard?: boolean;
-  canViewBalanceSheet?: boolean;
-  canViewReports?: boolean;
-  canViewProjectBalance?: boolean;
-  canViewProjectInvestment?: boolean;
-  // Extra
-  canTakeBackup?: boolean;
 }
 
 export type UserRole = 'admin' | 'user';

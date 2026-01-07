@@ -12,12 +12,12 @@ import ProjectHeader from './components/ProjectHeader';
 import UserManagement from './components/UserManagement';
 import ProfileSettings from './components/ProfileSettings';
 import ReportsView from './components/ReportsView';
-import { Loader2, AlertTriangle, Lock } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { apiService } from './services/apiService';
 import { format } from 'date-fns';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { HashRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 const AppContent: React.FC = () => {
   const { user, token, isLoading: authLoading, logout, permissions, updateUser } = useAuth();
@@ -28,7 +28,6 @@ const AppContent: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [initialRedirectDone, setInitialRedirectDone] = useState(false);
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,25 +42,19 @@ const AppContent: React.FC = () => {
 
   const theme: AppTheme = user?.theme || 'slate';
 
+  // Extract projectId from URL manually as useParams() only works inside components rendered by Route
   const activeProjectId = useMemo(() => {
     const match = location.pathname.match(/\/project\/([^/]+)/);
     return match ? String(match[1]) : null;
   }, [location.pathname]);
 
+  // Determine current "view" based on pathname
   const activeView = useMemo(() => {
     if (location.pathname.startsWith('/users')) return 'users';
     if (location.pathname.startsWith('/profile')) return 'profile';
     if (location.pathname.startsWith('/reports')) return 'reports';
     return 'dashboard';
   }, [location.pathname]);
-
-  // Redirect non-superusers to profile on login/root access (only once per session)
-  useEffect(() => {
-    if (!authLoading && user && !user.is_superuser && location.pathname === '/' && !initialRedirectDone) {
-      setInitialRedirectDone(true);
-      navigate('/profile', { replace: true });
-    }
-  }, [user, authLoading, location.pathname, navigate, initialRedirectDone]);
 
   useEffect(() => {
     if (!token || authLoading) {
@@ -74,17 +67,17 @@ const AppContent: React.FC = () => {
     const loadData = async () => {
       setIsInitializing(true);
       try {
-        // Can load projects if we can view dashboard OR project list OR reports
-        const canViewData = permissions.canViewProjects || permissions.canViewDashboard || permissions.canViewReports;
+        const canViewProjects = permissions.canViewProjects;
+        const canViewTransactions = permissions.canViewTransactions;
 
-        if (!canViewData) {
+        if (!canViewProjects && !canViewTransactions) {
           setIsInitializing(false);
           return;
         }
 
         const [apiProjects, apiTransactions] = await Promise.all([
-          permissions.canViewProjects ? apiService.fetchProjects() : Promise.resolve([]),
-          permissions.canViewTransactions ? apiService.fetchTransactions() : Promise.resolve([])
+          canViewProjects ? apiService.fetchProjects() : Promise.resolve([]),
+          canViewTransactions ? apiService.fetchTransactions() : Promise.resolve([])
         ]);
         
         const sortedProjects = [...apiProjects].sort((a, b) => {
@@ -102,7 +95,7 @@ const AppContent: React.FC = () => {
     };
 
     loadData();
-  }, [token, authLoading, permissions]);
+  }, [token, authLoading, permissions.canViewProjects, permissions.canViewTransactions]);
 
   const activeProject = useMemo(() => 
     projects.find(p => String(p.id) === activeProjectId) || null
@@ -265,58 +258,31 @@ const AppContent: React.FC = () => {
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
           <Routes>
-            <Route path="/users" element={permissions.canViewUsers ? <UserManagement /> : <Navigate to="/" />} />
+            <Route path="/users" element={<UserManagement />} />
             <Route path="/profile" element={<ProfileSettings activeUser={user} onUpdateUser={updateUser} />} />
-            <Route path="/reports" element={
-              permissions.canViewReports ? (
-                <ReportsView transactions={transactions} projects={projects} />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-                   <Lock size={40} className="text-slate-300 mb-4" />
-                   <h2 className="text-2xl font-black text-slate-800">Restricted Access</h2>
-                   <p className="text-slate-500 font-medium">You do not have permission to view the ledger.</p>
-                </div>
-              )
-            } />
+            <Route path="/reports" element={<ReportsView transactions={transactions} projects={projects} />} />
             <Route path="/project/:projectId" element={
               <div className="max-w-7xl mx-auto h-full space-y-6">
-                {permissions.canViewProjects ? (
-                  activeProject ? (
-                    <>
-                      <ProjectHeader 
-                        project={activeProject} 
-                        transactions={transactions.filter(t => String(t.project) === activeProjectId)}
-                        onAddInvestment={() => openEntryModal('investment', format(new Date(), 'yyyy-MM-dd'))}
+                {activeProject ? (
+                  <>
+                    <ProjectHeader 
+                      project={activeProject} 
+                      transactions={transactions.filter(t => String(t.project) === activeProjectId)}
+                      onAddInvestment={() => openEntryModal('investment', format(new Date(), 'yyyy-MM-dd'))}
+                    />
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                      <CalendarView 
+                        projectId={activeProjectId!}
+                        transactions={transactions.filter(t => String(t.project) === activeProjectId || t.project === null)}
+                        onAddTransaction={openEntryModal}
+                        onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
+                        onDeleteTransaction={handleDeleteTransaction}
+                        activeProject={activeProject}
+                        user={user}
                       />
-                      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                        <CalendarView 
-                          projectId={activeProjectId!}
-                          transactions={transactions.filter(t => String(t.project) === activeProjectId || t.project === null)}
-                          onAddTransaction={openEntryModal}
-                          onOpenDayDetail={(date) => { setSelectedDate(date); setIsDayDetailOpen(true); }}
-                          onDeleteTransaction={handleDeleteTransaction}
-                          activeProject={activeProject}
-                          user={user}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-20">
-                      <p className="text-slate-400 font-black">Project not found.</p>
                     </div>
-                  )
+                  </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-                     <Lock size={40} className="text-slate-300 mb-4" />
-                     <h2 className="text-2xl font-black text-slate-800">Access Denied</h2>
-                     <p className="text-slate-500 font-medium">You cannot view individual project details.</p>
-                  </div>
-                )}
-              </div>
-            } />
-            <Route path="/" element={
-              <div className="max-w-7xl mx-auto h-full">
-                {permissions.canViewDashboard ? (
                   <EmptyState 
                     onOpenSidebar={() => setIsSidebarOpen(true)} 
                     globalBalance={globalBalance}
@@ -326,17 +292,20 @@ const AppContent: React.FC = () => {
                     onSelectProject={(id) => navigate(`/project/${id}`)}
                     theme={theme}
                   />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4 animate-in fade-in duration-500">
-                    <div className="w-20 h-20 bg-slate-100 text-slate-400 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
-                      <Lock size={40} />
-                    </div>
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Access Restricted</h2>
-                    <p className="text-slate-500 font-medium max-w-sm leading-relaxed">
-                      You do not have permission to view the project hub.
-                    </p>
-                  </div>
                 )}
+              </div>
+            } />
+            <Route path="/" element={
+              <div className="max-w-7xl mx-auto h-full">
+                <EmptyState 
+                  onOpenSidebar={() => setIsSidebarOpen(true)} 
+                  globalBalance={globalBalance}
+                  projectCount={projects.length}
+                  projects={projects}
+                  transactions={transactions}
+                  onSelectProject={(id) => navigate(`/project/${id}`)}
+                  theme={theme}
+                />
               </div>
             } />
           </Routes>

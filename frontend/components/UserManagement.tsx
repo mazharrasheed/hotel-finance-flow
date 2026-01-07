@@ -1,27 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { UserPlus, Trash2, Shield, Mail, Key, UserCheck, X, Loader2, AlertCircle, UserCircle, CheckCircle2, Edit3, Settings2, Hotel, Bed, ConciergeBell, Utensils, Building2, Coffee } from 'lucide-react';
+import { UserPlus, Trash2, Shield, Mail, Key, UserCheck, X, Loader2, AlertCircle, UserCircle, CheckCircle2, Edit3, Hotel, Bed, Building2, Coffee } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 
-interface DjangoPermission {
-  codename: string;
-  name: string;
-  app_label: string;
-}
+const REQUIRED_PERMISSIONS = [
+  { codename: 'add_user', name: 'Can add user', group: 'User Management' },
+  { codename: 'change_user', name: 'Can change user', group: 'User Management' },
+  { codename: 'delete_user', name: 'Can delete user', group: 'User Management' },
+  { codename: 'view_user', name: 'Can view user', group: 'User Management' },
+  { codename: 'add_project', name: 'Can add project', group: 'Project Management' },
+  { codename: 'change_project', name: 'Can change project', group: 'Project Management' },
+  { codename: 'delete_project', name: 'Can delete project', group: 'Project Management' },
+  { codename: 'view_project', name: 'Can view project', group: 'Project Management' },
+  { codename: 'add_transaction', name: 'Can add transaction', group: 'Transaction Management' },
+  { codename: 'change_transaction', name: 'Can change transaction', group: 'Transaction Management' },
+  { codename: 'delete_transaction', name: 'Can delete transaction', group: 'Transaction Management' },
+  { codename: 'view_transaction', name: 'Can view transaction', group: 'Transaction Management' },
+  { codename: 'view_dashboard', name: 'Can view dashboard', group: 'Custom Views' },
+  { codename: 'view_balance_sheet', name: 'Can view balance sheet', group: 'Custom Views' },
+  { codename: 'view_reports', name: 'Can view reports', group: 'Custom Views' },
+  { codename: 'view_project_balance', name: 'Can view balance', group: 'Custom Views' },
+  { codename: 'view_project_investment', name: 'Can view investment', group: 'Custom Views' },
+];
 
 const UserManagement: React.FC = () => {
-  const { user: currentAdmin, hasPerm } = useAuth();
+  const { user: currentAdmin, permissions } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<DjangoPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState({
     username: '',
     first_name: '',
@@ -32,49 +44,22 @@ const UserManagement: React.FC = () => {
     permissions: [] as string[] 
   });
   
-  const loadInitialData = async () => {
+  const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const [usersData, permsData] = await Promise.all([
-        apiService.fetchUsers(),
-        apiService.fetchAvailablePermissions()
-      ]);
+      const usersData = await apiService.fetchUsers();
       setUsers(usersData);
-      
-      // Filter permissions to include:
-      // 1. All permissions from 'finance' app
-      // 2. Specific user management permissions from 'auth' app
-      const relevantPerms = Array.isArray(permsData) 
-        ? permsData.filter((p: any) => 
-            p && (
-              p.app_label === 'finance' ||
-              (p.app_label === 'auth' && ['add_user', 'change_user', 'delete_user', 'view_user'].includes(p.codename))
-            )
-          )
-        : [];
-      
-      setAvailablePermissions(relevantPerms);
     } catch (err) {
-      console.error("Data load failed:", err);
+      console.error("User load failed:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
+  useEffect(() => { loadUsers(); }, []);
 
   const resetForm = () => {
-    setFormData({ 
-      username: '', 
-      first_name: '', 
-      last_name: '', 
-      email: '', 
-      password: '', 
-      confirm_password: '',
-      permissions: [] 
-    });
+    setFormData({ username: '', first_name: '', last_name: '', email: '', password: '', confirm_password: '', permissions: [] });
     setEditingUser(null);
     setShowAddForm(false);
     setError(null);
@@ -89,9 +74,7 @@ const UserManagement: React.FC = () => {
       email: user.email || '',
       password: '', 
       confirm_password: '',
-      permissions: Array.isArray(user.permission_details) 
-        ? user.permission_details.map((p: any) => p.codename)
-        : []
+      permissions: Array.isArray(user.permission_details) ? user.permission_details.map((p: any) => p.codename) : []
     });
     setShowAddForm(true);
   };
@@ -99,92 +82,42 @@ const UserManagement: React.FC = () => {
   const togglePermission = (codename: string) => {
     setFormData(prev => ({
       ...prev,
-      permissions: prev.permissions.includes(codename)
-        ? prev.permissions.filter(p => p !== codename)
-        : [...prev.permissions, codename]
+      permissions: prev.permissions.includes(codename) ? prev.permissions.filter(p => p !== codename) : [...prev.permissions, codename]
     }));
   };
 
   const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     if (!editingUser) {
-      if (!formData.password) {
-        setError("Please provide an access password for the new personnel.");
-        return;
-      }
-      if (formData.password !== formData.confirm_password) {
-        setError("The confirmed password does not match.");
-        return;
-      }
+      if (!formData.password) return setError("Password required.");
+      if (formData.password !== formData.confirm_password) return setError("Passwords mismatch.");
     }
-
     setIsSubmitting(true);
     try {
-      const payload: any = {
-        username: formData.username,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        permissions: formData.permissions
-      };
-
-      if (formData.password) {
-        payload.password = formData.password;
-      }
-
-      if (editingUser) {
-        await apiService.updateUser(editingUser.id, payload);
-      } else {
-        await apiService.createUser(payload);
-      }
-
-      const freshUsers = await apiService.fetchUsers();
-      setUsers(freshUsers);
+      const payload: any = { username: formData.username, first_name: formData.first_name, last_name: formData.last_name, email: formData.email, permissions: formData.permissions };
+      if (formData.password) payload.password = formData.password;
+      editingUser ? await apiService.updateUser(editingUser.id, payload) : await apiService.createUser(payload);
+      await loadUsers();
       resetForm();
     } catch (err: any) {
-      // Catch all errors and display them in a user-friendly format
-      setError(err.message || "An unexpected error occurred while saving the personnel record. Please check your connection and try again.");
+      setError(err.message || "Failed to save personnel.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (userId: string | number) => {
-    if (userId === currentAdmin?.id) return alert("Cannot delete your own account.");
-    if (!confirm("Terminate access for this personnel?")) return;
-    try {
-      const res = await fetch(`https://aliandco.pythonanywhere.com/api/users/${userId}/`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Token ${localStorage.getItem('ff_token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!res.ok) throw new Error("Delete failed");
-      setUsers(users.filter(u => u.id !== userId));
-    } catch (err) {
-      alert("Delete failed. You may not have permission to delete users.");
-    }
-  };
-
-  const canAddUser = hasPerm('add_user', 'auth');
-  const canEditUser = hasPerm('change_user', 'auth');
-  const canDeleteUser = hasPerm('delete_user', 'auth');
+  const { canAddUser, canEditUser, canDeleteUser } = permissions;
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Personnel Directory</h2>
-          <p className="text-slate-400 font-medium">Manage project access and administrative permissions.</p>
+          <p className="text-slate-400 font-medium">Manage exactly 17 system permissions and project access.</p>
         </div>
         {canAddUser && (
-          <button 
-            onClick={() => { resetForm(); setShowAddForm(true); }}
-            className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl active:scale-95"
-          >
+          <button onClick={() => { resetForm(); setShowAddForm(true); }} className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl">
             <UserPlus size={18} /> Register Personnel
           </button>
         )}
@@ -192,11 +125,6 @@ const UserManagement: React.FC = () => {
 
       {isLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600" /></div>
-      ) : users.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
-          <UserCheck size={48} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-400 font-bold">No registered users found.</p>
-        </div>
       ) : (
         <div className="grid gap-6">
           {users.map((u: any) => (
@@ -206,36 +134,13 @@ const UserManagement: React.FC = () => {
                   {u.is_staff || u.is_superuser ? <Shield size={24} /> : <UserCircle size={24} />}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-800">
-                    {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}` : `User (${u.username})`}
-                  </h3>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <p className="text-xs font-bold text-slate-400 flex items-center gap-1"><Mail size={12} /> {u.email || 'No email'}</p>
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-slate-50 text-slate-500 border border-slate-100">@{u.username}</span>
-                  </div>
+                  <h3 className="font-black text-slate-800">{u.first_name || u.last_name ? `${u.first_name} ${u.last_name}` : u.username}</h3>
+                  <p className="text-xs font-bold text-slate-400 flex items-center gap-1"><Mail size={12} /> {u.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {u.is_superuser && <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md">Root</span>}
-                {canEditUser && (
-                  <button 
-                    onClick={() => handleEdit(u)}
-                    className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"
-                    title="Edit details"
-                  >
-                    <Edit3 size={18} />
-                  </button>
-                )}
-                {canDeleteUser && (
-                  <button 
-                    onClick={() => handleDelete(u.id)} 
-                    disabled={u.id === currentAdmin?.id} 
-                    className="p-3 text-slate-300 hover:text-rose-600 disabled:opacity-0 transition-colors"
-                    title="Remove access"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                {canEditUser && <button onClick={() => handleEdit(u)} className="p-3 text-slate-300 hover:text-indigo-600 transition-colors"><Edit3 size={18} /></button>}
+                {canDeleteUser && <button onClick={async () => { if (confirm("Remove user?")) { await fetch(`https://aliandco.pythonanywhere.com/api/users/${u.id}/`, { method: 'DELETE', headers: { 'Authorization': `Token ${localStorage.getItem('ff_token')}` } }); loadUsers(); } }} className="p-3 text-slate-300 hover:text-rose-600 transition-colors"><Trash2 size={18} /></button>}
               </div>
             </div>
           ))}
@@ -243,179 +148,53 @@ const UserManagement: React.FC = () => {
       )}
 
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200 border border-slate-100 my-8 relative overflow-hidden">
-            {/* Watermark for Personnel Form Modal */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none z-20">
-              <div className="grid grid-cols-3 gap-x-20 gap-y-20 -rotate-12 scale-150">
-                <Hotel size={120} />
-                <Bed size={120} />
-                <ConciergeBell size={120} />
-                <Utensils size={120} />
-                <Building2 size={120} />
-                <Coffee size={120} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] p-0 w-full max-w-xl max-h-[90vh] shadow-2xl flex flex-col relative overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">{editingUser ? 'Modify Personnel' : 'Register Personnel'}</h3>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-0.5">Personnel Access Management</p>
               </div>
+              <button onClick={resetForm} className="p-2 hover:bg-slate-50 rounded-full text-slate-400"><X size={20} /></button>
             </div>
 
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                    {editingUser ? 'Edit Personnel' : 'Register Personnel'}
-                  </h3>
-                  <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">
-                    {editingUser ? `Updating @${editingUser.username}` : 'Create New System Access'}
-                  </p>
-                </div>
-                <button onClick={resetForm} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400">
-                  <X size={24} />
-                </button>
+            <form onSubmit={handleSubmitUser} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              {error && <div className="p-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-bold border border-rose-100">{error}</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <input required placeholder="First Name" value={formData.first_name} onChange={e => setFormData(p => ({...p, first_name: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
+                <input required placeholder="Last Name" value={formData.last_name} onChange={e => setFormData(p => ({...p, last_name: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input required placeholder="Username" value={formData.username} onChange={e => setFormData(p => ({...p, username: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
+                <input required type="email" placeholder="Email" value={formData.email} onChange={e => setFormData(p => ({...p, email: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="password" placeholder="Password" required={!editingUser} value={formData.password} onChange={e => setFormData(p => ({...p, password: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
+                <input type="password" placeholder="Confirm" required={!!formData.password} value={formData.confirm_password} onChange={e => setFormData(p => ({...p, confirm_password: e.target.value}))} className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-xl outline-none font-bold text-xs" />
               </div>
 
-              <form onSubmit={handleSubmitUser} className="space-y-6">
-                {error && (
-                  <div className="flex items-center gap-3 p-5 bg-rose-50 text-rose-600 rounded-2xl animate-in slide-in-from-top-4 duration-300 border border-rose-100">
-                    <div className="p-2 bg-white rounded-xl shadow-sm">
-                      <AlertCircle size={24} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest mb-0.5">Registration Issue</p>
-                      <p className="text-xs font-bold leading-relaxed">{error}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
-                    <input 
-                      required 
-                      name="first_name"
-                      value={formData.first_name} 
-                      onChange={e => setFormData(prev => ({...prev, first_name: e.target.value}))}
-                      className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                      placeholder="e.g. Ali"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
-                    <input 
-                      required
-                      name="last_name"
-                      value={formData.last_name} 
-                      onChange={e => setFormData(prev => ({...prev, last_name: e.target.value}))}
-                      className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                      placeholder="e.g. Khan"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
-                    <div className="relative">
-                      <UserCircle size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        required 
-                        value={formData.username} 
-                        onChange={e => setFormData(prev => ({...prev, username: e.target.value.toLowerCase().replace(/\s/g, '')}))}
-                        className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                        placeholder="johndoe"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                    <div className="relative">
-                      <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="email"
-                        required 
-                        value={formData.email} 
-                        onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
-                        className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      {editingUser ? 'Change Password' : 'Access Password'}
-                    </label>
-                    <div className="relative">
-                      <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="password"
-                        required={!editingUser} 
-                        value={formData.password} 
-                        onChange={e => setFormData(prev => ({...prev, password: e.target.value}))}
-                        className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                        placeholder={editingUser ? "Leave blank to keep current" : "••••••••"}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Password</label>
-                    <div className="relative">
-                      <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                      <input 
-                        type="password"
-                        required={!!formData.password} 
-                        value={formData.confirm_password} 
-                        onChange={e => setFormData(prev => ({...prev, confirm_password: e.target.value}))}
-                        className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none font-bold text-slate-700 transition-all text-sm"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between ml-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Management Clearance</label>
-                    <Settings2 size={12} className="text-slate-300" />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {availablePermissions.map(perm => (
-                      <div 
-                        key={perm.codename}
-                        onClick={() => togglePermission(perm.codename)}
-                        className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          formData.permissions.includes(perm.codename) 
-                          ? 'border-indigo-500 bg-indigo-50/50' 
-                          : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p className={`text-[10px] font-black uppercase tracking-tight ${formData.permissions.includes(perm.codename) ? 'text-indigo-600' : 'text-slate-500'}`}>
-                            {perm.name}
-                          </p>
-                          <p className="text-[8px] font-bold text-slate-300 uppercase leading-none mt-1">{perm.app_label}</p>
-                        </div>
-                        {formData.permissions.includes(perm.codename) && <CheckCircle2 size={14} className="text-indigo-600 shrink-0" />}
+              <div className="pt-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4 border-b border-slate-50 pb-2">System Permissions (17 Total)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+                  {REQUIRED_PERMISSIONS.map(perm => (
+                    <label key={perm.codename} className="flex items-center gap-3 cursor-pointer group py-0.5">
+                      <div className="relative flex items-center">
+                        <input type="checkbox" checked={formData.permissions.includes(perm.codename)} onChange={() => togglePermission(perm.codename)} className="peer appearance-none w-4 h-4 rounded border-2 border-slate-200 checked:bg-indigo-600 checked:border-indigo-600 transition-all" />
+                        <CheckCircle2 size={10} className="absolute inset-0 m-auto text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
                       </div>
-                    ))}
-                  </div>
+                      <span className={`text-[10px] font-black uppercase tracking-tight transition-colors ${formData.permissions.includes(perm.codename) ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                        {perm.name}
+                      </span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+            </form>
 
-                <button
-                  disabled={isSubmitting}
-                  type="submit"
-                  className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 size={20} className="animate-spin" />
-                      <span>Synchronizing...</span>
-                    </div>
-                  ) : (
-                    editingUser ? 'Update Personnel Record' : 'Create Personnel Record'
-                  )}
-                </button>
-              </form>
+            <div className="p-6 bg-slate-50 border-t border-slate-100">
+              <button disabled={isSubmitting} onClick={handleSubmitUser} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center">
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : (editingUser ? 'Update Records' : 'Register User')}
+              </button>
             </div>
           </div>
         </div>
