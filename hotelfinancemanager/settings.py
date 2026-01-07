@@ -16,12 +16,15 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 from pathlib import Path
+import pymysql
+pymysql.install_as_MySQLdb()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-c$a%3ewk+f$nsx0jr@u%!+)2i5ztx89m-v-rgnv)t5o5v4-4&v'
+
 
 ALLOWED_HOSTS = ['127.0.0.1','aliandco.pythonanywhere.com']
 
@@ -76,13 +79,24 @@ WSGI_APPLICATION = 'hotelfinancemanager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'aliandco$default',
+        'USER': 'aliandco',
+        'PASSWORD': 'mazharrasheed',
+        'HOST': 'aliandco.mysql.pythonanywhere-services.com',
+        'PORT': '3306',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
